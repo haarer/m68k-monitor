@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <mc68332.h>
-#include <uart.h>
+#include <platform.h>
 #include <commands.h>
 
 extern struct _reent reent_main;
@@ -65,33 +64,7 @@ static int find_command(const char *name)
 }
 
 void v_uartInit(void);
-void init_basics(void);
-void init_clock_config(void);
-void init_peripherials(void);
-void init_chip_selects(void);
-
-void init_main(void)
-{
-    init_basics();
-    init_clock_config();
-    init_peripherials();
-    v_uartInit();
-    init_chip_selects();
-
-    _REENT_INIT_PTR(&reent_main);
-    _impure_ptr = &reent_main;
-}
-
-void init_basics(void) {}
-void init_peripherials(void) {}
-void init_chip_selects(void) {}
-
-void init_clock_config(void)
-{
-    SYNCR = 0x3F00;
-    while ((SYNCR & 0x08) == 0);
-    SYNCR = 0x7F00;
-}
+void init_main(void);
 
 int main(int argc, char *argv[])
 {
@@ -99,6 +72,8 @@ int main(int argc, char *argv[])
     int i;
     int cmd_idx;
     char *cmd_argv[16];
+
+    init_main();
 
     putstr("\r\n");
     putstr("MC68331 Monitor v0.1\r\n");
@@ -111,8 +86,7 @@ int main(int argc, char *argv[])
         prompt();
 
         while (1) {
-            while (!(SCSR & (1 << 6)));
-            ch = SCDR;
+            ch = i_uartGetch();
             v_uartPutch(ch);
             if (ch == '\r') {
                 putnl();

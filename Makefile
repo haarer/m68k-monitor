@@ -1,21 +1,40 @@
 TARGET := m68k-monitor
 
-CC := m68k-elf-gcc
-OBJCPY := m68k-elf-objcopy
-SIZE := m68k-elf-size
-OBJDUMP := m68k-elf-objdump
+CC := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-gcc
+OBJCPY := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-objcopy
+SIZE := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-size
+OBJDUMP := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-objdump
 
-CFLAGS += -m68332 -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99 -g
+VARIANT ?= realhw
 
-LFLAGS += -m68332 -g -nostartfiles -Wl,--script=ram.ld,-Map=$(TARGET).map,--allow-multiple-definition
-LIBS := -lnosys -lc
+CFLAGS_COMMON := -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99 -g
 
-OBJ := main.o commands.o uart.o appinit.o
-AOBJ := crt0.o vector.o
+LIB_DIR := /workspace/toolchain68k/toolchain-m68k-elf-current/m68k-elf/lib
 
-$(TARGET).elf: $(OBJ) $(AOBJ) ram.ld
-	@echo "---> linking..."
-	$(CC) $(AOBJ) $(OBJ) $(LFLAGS) $(LIBS) -o $@
+ifeq ($(VARIANT),qemu)
+    CFLAGS := $(CFLAGS_COMMON) -m68020 -DPLATFORM_QEMU
+    LDSCRIPT := qemu.ld
+    UART_SRC := uart_qemu
+    APPINIT_SRC := appinit_qemu
+    AOBJ := crt0_qemu.o vector_simple.o
+    LFLAGS := -m68020 -g -nostartfiles -nodefaultlibs -Wl,-T$(LDSCRIPT),-Map=$(TARGET).map
+    extra_libs :=
+else
+    CFLAGS := $(CFLAGS_COMMON) -m68332 -DPLATFORM_REALHW
+    LDSCRIPT := ram.ld
+    UART_SRC := uart
+    APPINIT_SRC := appinit
+    AOBJ := crt0.o vector.o
+    LFLAGS := -m68332 -g -nostartfiles -nodefaultlibs -Wl,-T$(LDSCRIPT),-Map=$(TARGET).map
+    LIB_DIR := /workspace/toolchain68k/toolchain-m68k-elf-current/m68k-elf/lib
+    extra_libs := -L$(LIB_DIR) -lc -lnosys
+endif
+
+OBJ := main.o commands.o $(APPINIT_SRC).o $(UART_SRC).o
+
+$(TARGET).elf: $(OBJ) $(AOBJ) $(LDSCRIPT)
+	@echo "---> linking $(VARIANT)..."
+	$(CC) $(AOBJ) $(OBJ) $(LFLAGS) $(extra_libs) -o $@
 
 %.o: %.S
 	$(CC) -c $(CFLAGS) -Wa,-adhlns=$<.lst $< -o $@
@@ -34,11 +53,22 @@ files: $(TARGET).elf
 all: files
 
 clean:
-	rm -f $(OBJ) $(AOBJ) *.hex *.srec *.bin *.elf *.map *~ *.lst
+	rm -f *.o *.hex *.srec *.bin *.elf *.map *~ *.lst
 
 size: $(TARGET).elf
 	$(SIZE) $(TARGET).elf
 	@echo ""
 	$(SIZE) -Ax $(TARGET).elf
 
-.PHONY: all clean files size
+run-qemu: VARIANT=qemu
+run-qemu: all
+	@echo "---> Running in QEMU..."
+	qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none
+
+.PHONY: all clean files size run-qemu
+
+help:
+	@echo "Build targets:"
+	@echo "  make all VARIANT=realhw   - Build for MC68331 hardware (default)"
+	@echo "  make all VARIANT=qemu      - Build for QEMU virt machine"
+	@echo "  make run-qemu            - Build and run in QEMU"
