@@ -1,0 +1,19 @@
+# Build artifacts
+*.o
+*.a
+*.elf
+*.bin
+*.hex
+*.srec
+*.map
+*.lst
+*~
+
+# Editor files
+*.swp
+*.swo
+.*.swp
+.*.swo
+
+# OS files
+.DS_Store
