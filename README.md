@@ -71,6 +71,17 @@ qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none
 
 - Serial output may not appear in QEMU console
 - Use GDB debugging for verification
+- QEMU -display none with -serial stdio may conflict
+
+### Debugging with GDB
+
+```bash
+# Start QEMU with GDB server (stopped on start)
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S &
+
+# Connect with GDB
+gdb -ex "target remote localhost:1234" -ex "info registers" m68k-monitor.elf
+```
 
 ### Linker Script
 
