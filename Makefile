@@ -4,8 +4,11 @@ CC := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-gcc
 OBJCPY := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-objcopy
 SIZE := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-size
 OBJDUMP := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-objdump
+GDB := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-gdb
 
 VARIANT ?= realhw
+
+TOOLCHAIN := /workspace/toolchain68k/toolchain-m68k-elf-current/bin
 
 CFLAGS_COMMON := -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99 -g
 
@@ -65,10 +68,22 @@ run-qemu: all
 	@echo "---> Running in QEMU..."
 	qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none
 
-.PHONY: all clean files size run-qemu
+debug-qemu: VARIANT=qemu
+debug-qemu:
+	@echo "---> Starting QEMU with GDB server..."
+	@echo "---> Connect with: $(GDB) m68k-monitor.elf -ex 'target remote localhost:1234'"
+	@echo ""
+	qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S
+
+.PHONY: all clean files size run-qemu debug-qemu help
 
 help:
 	@echo "Build targets:"
-	@echo "  make all VARIANT=realhw   - Build for MC68331 hardware (default)"
-	@echo "  make all VARIANT=qemu      - Build for QEMU virt machine"
-	@echo "  make run-qemu            - Build and run in QEMU"
+	@echo "  make all VARIANT=realhw       - Build for MC68331 hardware"
+	@echo "  make all VARIANT=qemu         - Build for QEMU virt machine"
+	@echo "  make run-qemu                - Build and run in QEMU"
+	@echo "  make debug-qemu               - Build and start QEMU with GDB server"
+	@echo ""
+	@echo "Debugging:"
+	@echo "  make debug-qemu"
+	@echo "  $(GDB) m68k-monitor.elf -ex 'target remote localhost:1234'"

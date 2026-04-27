@@ -6,9 +6,28 @@ Bare-metal monitor for MC68331 (CPU32) with UART console.
 
 ```bash
 make all VARIANT=realhw   # Build for MC68331 hardware
-make all VARIANT=qemu      # Build for QEMU virt machine
-make run-qemu            # Build and run in QEMU
+make all VARIANT=qemu     # Build for QEMU virt machine
 ```
+
+## Toolchain
+
+Requires m68k-elf toolchain built from https://github.com/haarer/toolchain68k
+
+Current versions:
+- GCC 15.2.0
+- binutils 2.46.0
+- GDB 17.1
+- newlib 4.6.0
+
+### Toolchain Path
+
+```bash
+export PATH=/workspace/toolchain68k/toolchain-m68k-elf-current/bin:$PATH
+```
+
+Tools: `m68k-elf-gcc`, `m68k-elf-gdb`, `m68k-elf-objdump`, `m68k-elf-nm`, etc.
+
+---
 
 ## Commands
 
@@ -59,34 +78,98 @@ Target: QEMU m68k virt machine
 | Goldfish TTY | 0xFF008000 | Serial console |
 | CPU | m68020 | No MMU |
 
-### Run
+### Run in QEMU
 
 ```bash
-make run-qemu
-# or manually:
 qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none
-```
-
-### Known Issues
-
-- Serial output may not appear in QEMU console
-- Use GDB debugging for verification
-- QEMU -display none with -serial stdio may conflict
-
-### Debugging with GDB
-
-```bash
-# Start QEMU with GDB server (stopped on start)
-qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S &
-
-# Connect with GDB
-gdb -ex "target remote localhost:1234" -ex "info registers" m68k-monitor.elf
 ```
 
 ### Linker Script
 
 - Base: `qemu.ld`
 - Vectors: `.vector` section at 0x40000000
+
+---
+
+## Debugging with GDB
+
+### Start QEMU with GDB Server
+
+```bash
+# Option 1: Run and connect immediately
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s
+
+# Option 2: Stopped at start (wait for GDB)
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S
+```
+
+### Connect GDB
+
+```bash
+export PATH=/workspace/toolchain68k/toolchain-m68k-elf-current/bin:$PATH
+
+m68k-elf-gdb m68k-monitor.elf -ex "target remote localhost:1234"
+```
+
+### Common GDB Commands
+
+```bash
+# Connection
+target remote localhost:1234    # Connect to QEMU
+
+# Execution control
+continue                       # Run until breakpoint
+c                              # Short for continue
+step                           # Step one instruction
+next                           # Step one instruction (skip calls)
+finish                         # Run until function returns
+interrupt                     # Stop running program
+
+# Breakpoints
+break *0x400006d8             # Break at address
+break init_main               # Break at function
+info breakpoints             # List breakpoints
+delete <num>                 # Delete breakpoint
+
+# Inspection
+info registers               # Show all registers
+info registers pc             # Show PC only
+x/20i $pc                    # Disassemble 20 instructions at PC
+x/4x 0x40000FF0              # Examine 4 words at address
+print $d0                     # Print register value
+backtrace                     # Show call stack
+
+# Source-level debugging
+list main                     # Show source around main
+list                          # Continue listing
+step                          # Step one source line
+next                          # Step one source line (skip calls)
+```
+
+### Example Debugging Session
+
+```bash
+# Terminal 1: Start QEMU
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S &
+
+# Terminal 2: Debug with GDB
+m68k-elf-gdb m68k-monitor.elf << 'EOF'
+target remote localhost:1234
+set tcp connect-timeout 30
+break init_main
+continue
+step
+step
+step
+info registers pc
+continue
+EOF
+```
+
+### Known Issues
+
+- Serial output may not appear in QEMU (Goldfish TTY not fully connected)
+- Use GDB for debugging verification
 
 ---
 
