@@ -10,5 +10,8 @@
     ],
     "C_Cpp.default.defines": [
         "PLATFORM_QEMU"
-    ]
+    ],
+    "[m68k]": {
+        "editor.rulers": []
+    }
 }

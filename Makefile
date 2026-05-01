@@ -10,7 +10,7 @@ VARIANT ?= realhw
 
 TOOLCHAIN := /opt/toolchain-m68k-elf-current/bin
 
-CFLAGS_COMMON := -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99 -g
+CFLAGS_COMMON := -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99 -g -g3
 
 LIB_DIR := /opt/toolchain-m68k-elf-current/m68k-elf/lib
 
@@ -40,7 +40,7 @@ $(TARGET).elf: $(OBJ) $(AOBJ) $(LDSCRIPT)
 	$(CC) $(AOBJ) $(OBJ) $(LFLAGS) $(extra_libs) -o $@
 
 %.o: %.S
-	$(CC) -c $(CFLAGS) -Wa,-adhlns=$<.lst $< -o $@
+	$(CC) -c $(CFLAGS) -g -Wa,-adhlns=$<.lst $< -o $@
 
 %.o: %.c
 	$(CC) -c $(CFLAGS) -Wa,-adhlns=$<.lst $< -o $@

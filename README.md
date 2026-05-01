@@ -174,11 +174,7 @@ EOF
 
 ### Required Plugin
 
-For **VS Code Community (OSS)** — install from [Open VSX Registry](https://open-vsx.org/):
-- **Native Debug** by Augmented Startup (`webfreak.debug`)
-
-For **VS Code (Microsoft)** — install from Marketplace:
-- **C/C++** by Microsoft (`ms-vscode.cpptools`)
+- **C/C++** by Microsoft (`ms-vscode.cpptools`) — provides the `cppdbg` debugger
 
 ### Setup
 
