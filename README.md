@@ -76,20 +76,32 @@ Target: QEMU m68k virt machine
 
 | Component | Address | Notes |
 |-----------|---------|-------|
-| RAM | 0x40000000 | 64MB simulated |
-| Goldfish TTY | 0xFF008000 | Serial console |
+| RAM | 0x00000000 | 64MB (origin in linker script) |
+| Goldfish TTY | 0xFF008000 | Serial console (stdin/stdout) |
 | CPU | m68020 | No MMU |
+
+### Memory Map (from qemu.ld)
+
+```
+0x00000000 - 0x00FFFFFF  RAM (64MB total)
+0x00000000              Vector table (.vector section)
+0x00000000+             Code (.text section)
+                        Data (.data section)
+                        BSS (.bss section)
+0x01000000              Stack top (__stack)
+```
 
 ### Run in QEMU
 
 ```bash
-qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -serial mon:stdio -display none
 ```
 
 ### Linker Script
 
 - Base: `qemu.ld`
-- Vectors: `.vector` section at 0x40000000
+- Vectors: `.vector` section at 0x00000000
+- Stack: 0x01000000 (16MB boundary)
 
 ---
 
@@ -99,10 +111,10 @@ qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none
 
 ```bash
 # Option 1: Run and connect immediately
-qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -serial mon:stdio -display none -s
 
 # Option 2: Stopped at start (wait for GDB)
-qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -serial mon:stdio -display none -s -S
 ```
 
 ### Connect GDB
@@ -152,7 +164,7 @@ next                          # Step one source line (skip calls)
 
 ```bash
 # Terminal 1: Start QEMU
-qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S &
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -serial mon:stdio -display none -s -S &
 
 # Terminal 2: Debug with GDB
 m68k-elf-gdb m68k-monitor.elf << 'EOF'
@@ -205,7 +217,7 @@ This automatically:
 
 To manually start QEMU first:
 ```bash
-qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -serial mon:stdio -display none -s -S
 ```
 Then in VS Code, select `QEMU: Attach to running GDB server` and press `F5`.
 
@@ -224,7 +236,6 @@ Then in VS Code, select `QEMU: Attach to running GDB server` and press `F5`.
 
 ### Known Issues
 
-- Serial output may not appear in QEMU (Goldfish TTY not fully connected)
 - Use GDB for debugging verification
 
 ---
