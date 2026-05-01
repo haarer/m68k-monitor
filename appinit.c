@@ -24,7 +24,6 @@ init_main( void )
   init_chip_selects(  );
 
   _REENT_INIT_PTR(&reent_main);
-  __sinit(&reent_main);
   _impure_ptr = &reent_main;
 }
 
