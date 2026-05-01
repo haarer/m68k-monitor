@@ -6,11 +6,16 @@
 
 #define UART_BASE 0xff008000
 
+
+
 #define UART_DATA (*(volatile uint32_t *)(UART_BASE + 0x00))
 #define UART_STATUS (*(volatile uint32_t *)(UART_BASE + 0x04))
 
 #define UART_STATUS_RX_READY 1
 
+
+#define GOLDFISH_DATA        (*(volatile uint32_t *)(UART_BASE + 0x00))
+#define GOLDFISH_BYTES_READY (*(volatile uint32_t *)(UART_BASE + 0x04))
 
 void v_uartInit(void);
 int i_uartGetch(void);

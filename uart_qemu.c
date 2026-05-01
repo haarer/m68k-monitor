@@ -8,12 +8,19 @@ void v_uartInit(void)
 
 int i_uartGetch(void)
 {
-    while (!(UART_STATUS & UART_STATUS_RX_READY)) {
+    static uint8_t buf[1];
+
+    while (*(volatile uint32_t *)(UART_BASE + 0x04) == 0) {
+        // wait for bytes
     }
-    return UART_DATA & 0xff;
+
+    *(volatile uint32_t *)(UART_BASE + 0x10) = (uint32_t)buf;
+    *(volatile uint32_t *)(UART_BASE + 0x14) = 1;
+    *(volatile uint32_t *)(UART_BASE + 0x08) = 0x03; // CMD_READ_BUFFER
+
+    return buf[0];
 }
 
-#define UART_BASE 0xff008000
 
  inline void v_uartPutch(unsigned int ch)
 {

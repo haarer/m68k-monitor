@@ -14,11 +14,12 @@
                 "virt",
                 "-cpu", "m68020",
                 "-kernel", "m68k-monitor.elf",
-                "-serial", "mon:stdio",
+ //               "-serial", "mon:stdio",
+                "-serial"," pty",
                  "-display", "none",
  //                "-d", "in_asm,exec,cpu",
                 "-s",
-                "-S"
+                "-S
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
