@@ -21,8 +21,10 @@ Current versions:
 
 ### Toolchain Path
 
+Pre-installed at `/opt/toolchain-m68k-elf-current/bin`:
+
 ```bash
-export PATH=/workspace/toolchain68k/toolchain-m68k-elf-current/bin:$PATH
+export PATH=/opt/toolchain-m68k-elf-current/bin:$PATH
 ```
 
 Tools: `m68k-elf-gcc`, `m68k-elf-gdb`, `m68k-elf-objdump`, `m68k-elf-nm`, etc.
@@ -106,7 +108,7 @@ qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -
 ### Connect GDB
 
 ```bash
-export PATH=/workspace/toolchain68k/toolchain-m68k-elf-current/bin:$PATH
+export PATH=/opt/toolchain-m68k-elf-current/bin:$PATH
 
 m68k-elf-gdb m68k-monitor.elf -ex "target remote localhost:1234"
 ```
