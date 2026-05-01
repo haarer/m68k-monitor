@@ -5,12 +5,22 @@
             "label": "qemu-start-gdb",
             "type": "shell",
             "command": "qemu-system-m68k",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "args": [
-                "-M", "virt",
-                "-cpu", "m68020",
-                "-kernel", "m68k-monitor.elf",
-                "-display", "none",
-                "-s", "-S"
+                "-M",
+                "virt",
+                "-cpu",
+                "m68020",
+                "-kernel",
+                "m68k-monitor.elf",
+                "-display",
+                "none",
+                "-s",
+                "-S",
+                "&"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -26,7 +36,14 @@
             "label": "qemu-stop",
             "type": "shell",
             "command": "pkill",
-            "args": ["-f", "qemu-system-m68k.*m68k-monitor.elf"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "args": [
+                "-f",
+                "qemu-system-m68k.*m68k-monitor.elf"
+            ],
             "problemMatcher": [],
             "presentation": {
                 "reveal": "silent"
@@ -36,7 +53,10 @@
             "label": "build-qemu",
             "type": "shell",
             "command": "make",
-            "args": ["all", "VARIANT=qemu"],
+            "args": [
+                "all",
+                "VARIANT=qemu"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
@@ -44,17 +64,24 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": ["$gcc"]
+            "problemMatcher": [
+                "$gcc"
+            ]
         },
         {
             "label": "build-realhw",
             "type": "shell",
             "command": "make",
-            "args": ["all", "VARIANT=realhw"],
+            "args": [
+                "all",
+                "VARIANT=realhw"
+            ],
             "options": {
                 "cwd": "${workspaceFolder}"
             },
-            "problemMatcher": ["$gcc"]
+            "problemMatcher": [
+                "$gcc"
+            ]
         }
     ]
 }
