@@ -1,18 +1,18 @@
 TARGET := m68k-monitor
 
-CC := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-gcc
-OBJCPY := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-objcopy
-SIZE := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-size
-OBJDUMP := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-objdump
-GDB := /workspace/toolchain68k/toolchain-m68k-elf-current/bin/m68k-elf-gdb
+CC := /opt/toolchain-m68k-elf-current/bin/m68k-elf-gcc
+OBJCPY := /opt/toolchain-m68k-elf-current/bin/m68k-elf-objcopy
+SIZE := /opt/toolchain-m68k-elf-current/bin/m68k-elf-size
+OBJDUMP := /opt/toolchain-m68k-elf-current/bin/m68k-elf-objdump
+GDB := /opt/toolchain-m68k-elf-current/bin/m68k-elf-gdb
 
 VARIANT ?= realhw
 
-TOOLCHAIN := /workspace/toolchain68k/toolchain-m68k-elf-current/bin
+TOOLCHAIN := /opt/toolchain-m68k-elf-current/bin
 
 CFLAGS_COMMON := -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99 -g
 
-LIB_DIR := /workspace/toolchain68k/toolchain-m68k-elf-current/m68k-elf/lib
+LIB_DIR := /opt/toolchain-m68k-elf-current/m68k-elf/lib
 
 ifeq ($(VARIANT),qemu)
     CFLAGS := $(CFLAGS_COMMON) -m68020 -DPLATFORM_QEMU
@@ -29,7 +29,7 @@ else
     APPINIT_SRC := appinit
     AOBJ := crt0.o vector.o
     LFLAGS := -m68332 -g -nostartfiles -nodefaultlibs -Wl,-T$(LDSCRIPT),-Map=$(TARGET).map
-    LIB_DIR := /workspace/toolchain68k/toolchain-m68k-elf-current/m68k-elf/lib
+    LIB_DIR := /opt/toolchain-m68k-elf-current/m68k-elf/lib
     extra_libs := -L$(LIB_DIR) -lc -lnosys
 endif
 
