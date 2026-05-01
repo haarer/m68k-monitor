@@ -9,10 +9,10 @@ __DYNAMIC = 0;
 
 MEMORY
 {
-    ram    (rwx) : ORIGIN = 0x40000000, LENGTH = 64M
+    ram    (rwx) : ORIGIN = 0x00000000, LENGTH = 64M
 }
 
-PROVIDE (__stack = 0x41000000);
+PROVIDE (__stack = 0x01000000);
 PROVIDE (__heap_limit = __stack);
 PROVIDE (__start = __text_start);
 

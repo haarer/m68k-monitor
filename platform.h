@@ -3,17 +3,14 @@
 
 #ifdef PLATFORM_QEMU
 
+
 #define UART_BASE 0xff008000
 
-#define UART_REG_PUT_CHAR   (*(volatile uint32_t *)(UART_BASE + 0x00))
-#define UART_REG_BYTES_READY (*(volatile uint32_t *)(UART_BASE + 0x04))
-#define UART_REG_CMD        (*(volatile uint32_t *)(UART_BASE + 0x08))
-#define UART_REG_VERSION    (*(volatile uint32_t *)(UART_BASE + 0x20))
+#define UART_DATA (*(volatile uint32_t *)(UART_BASE + 0x00))
+#define UART_STATUS (*(volatile uint32_t *)(UART_BASE + 0x04))
 
-#define UART_CMD_INT_DISABLE  0x00
-#define UART_CMD_INT_ENABLE   0x01
-#define UART_CMD_WRITE_BUFFER 0x02
-#define UART_CMD_READ_BUFFER  0x03
+#define UART_STATUS_RX_READY 1
+
 
 void v_uartInit(void);
 int i_uartGetch(void);

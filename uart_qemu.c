@@ -3,19 +3,19 @@
 
 void v_uartInit(void)
 {
-    UART_REG_CMD = UART_CMD_INT_DISABLE;
+    // nothing needed
 }
 
 int i_uartGetch(void)
 {
-    while (UART_REG_BYTES_READY == 0) {
+    while (!(UART_STATUS & UART_STATUS_RX_READY)) {
     }
-    return UART_REG_PUT_CHAR & 0xff;
+    return UART_DATA & 0xff;
 }
 
-void v_uartPutch(unsigned int ch)
+#define UART_BASE 0xff008000
+
+ inline void v_uartPutch(unsigned int ch)
 {
-    while (UART_REG_BYTES_READY != 0) {
-    }
-    UART_REG_PUT_CHAR = ch;
+    *(volatile uint32_t *)(UART_BASE + 0x00) = ch;
 }

@@ -12,15 +12,13 @@
             "args": [
                 "-M",
                 "virt",
-                "-cpu",
-                "m68020",
-                "-kernel",
-                "m68k-monitor.elf",
-                "-display",
-                "none",
+                "-cpu", "m68020",
+                "-kernel", "m68k-monitor.elf",
+                "-serial", "mon:stdio",
+                 "-display", "none",
+ //                "-d", "in_asm,exec,cpu",
                 "-s",
-                "-S",
-                "&"
+                "-S"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"

@@ -6,22 +6,30 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/m68k-monitor.elf",
+            "args": [],
+            "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
             "MIMode": "gdb",
             "miDebuggerPath": "/opt/toolchain-m68k-elf-current/bin/m68k-elf-gdb",
             "miDebuggerServerAddress": "localhost:1234",
-            "stopAtEntry": true,
-            "externalConsole": false,
-            "preLaunchTask": "qemu-start-gdb",
-            "postDebugTask": "qemu-stop",
             "setupCommands": [
                 {
+                    "description": "Set architecture to m68k",
                     "text": "set architecture m68k:68020"
                 },
                 {
+                    "description": "Break at __start",
                     "text": "break __start"
+                },
+                {
+                    "description": "Continue execution",
+                    "text": "continue"
                 }
-            ]
+            ],
+            "preLaunchTask": "qemu-start-gdb",
+            "postDebugTask": "qemu-stop"
         },
         {
             "name": "QEMU: Attach to running GDB server",

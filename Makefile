@@ -10,7 +10,7 @@ VARIANT ?= realhw
 
 TOOLCHAIN := /opt/toolchain-m68k-elf-current/bin
 
-CFLAGS_COMMON := -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99 -g -g3
+CFLAGS_COMMON := -I. -DREENTRANT_SYSCALLS_PROVIDED -D_REENT_SMALL -Wall -O0 -std=gnu99  -g3
 
 LIB_DIR := /opt/toolchain-m68k-elf-current/m68k-elf/lib
 
