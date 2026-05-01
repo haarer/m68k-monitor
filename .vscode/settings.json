@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "*.S": "assembly"
+    },
+    "C_Cpp.default.compilerPath": "/opt/toolchain-m68k-elf-current/bin/m68k-elf-gcc",
+    "C_Cpp.default.intelliSenseMode": "gcc-x86",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}",
+        "/opt/toolchain-m68k-elf-current/m68k-elf/include"
+    ],
+    "C_Cpp.default.defines": [
+        "PLATFORM_QEMU"
+    ]
+}

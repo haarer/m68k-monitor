@@ -1,0 +1,39 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "QEMU: Debug m68k-monitor",
+            "type": "gdb",
+            "request": "launch",
+            "target": "${workspaceFolder}/m68k-monitor.elf",
+            "cwd": "${workspaceFolder}",
+            "gdbpath": "/opt/toolchain-m68k-elf-current/bin/m68k-elf-gdb",
+            "remote": {
+                "host": "localhost",
+                "port": 1234
+            },
+            "autorun": [
+                "set architecture m68k:68020",
+                "break __start",
+                "continue"
+            ],
+            "preLaunchTask": "qemu-start-gdb",
+            "postDebugTask": "qemu-stop"
+        },
+        {
+            "name": "QEMU: Attach to running GDB server",
+            "type": "gdb",
+            "request": "launch",
+            "target": "${workspaceFolder}/m68k-monitor.elf",
+            "cwd": "${workspaceFolder}",
+            "gdbpath": "/opt/toolchain-m68k-elf-current/bin/m68k-elf-gdb",
+            "remote": {
+                "host": "localhost",
+                "port": 1234
+            },
+            "autorun": [
+                "set architecture m68k:68020",
+            ]
+        }
+    ]
+}

@@ -168,6 +168,64 @@ continue
 EOF
 ```
 
+---
+
+## VS Code Debugging (QEMU variant)
+
+### Required Plugin
+
+For **VS Code Community (OSS)** — install from [Open VSX Registry](https://open-vsx.org/):
+- **Native Debug** by Augmented Startup (`webfreak.debug`)
+
+For **VS Code (Microsoft)** — install from Marketplace:
+- **C/C++** by Microsoft (`ms-vscode.cpptools`)
+
+### Setup
+
+VS Code configuration is already included in `.vscode/`:
+- `launch.json` — debug configurations
+- `tasks.json` — build tasks and QEMU start/stop
+- `settings.json` — IntelliSense with toolchain includes
+
+### Build
+
+Press `Ctrl+Shift+B` and select:
+- `build-qemu` — build for QEMU
+- `build-realhw` — build for hardware
+
+### Debug
+
+1. Select **Run and Debug** (`Ctrl+Shift+D`)
+2. Choose `QEMU: Debug m68k-monitor` from the dropdown
+3. Press `F5`
+
+This automatically:
+- Starts QEMU with GDB server (`-s -S`)
+- Connects `m68k-elf-gdb` to `localhost:1234`
+- Sets architecture to `m68k:68020`
+- Stops at entry point
+
+### Attach to Running QEMU
+
+To manually start QEMU first:
+```bash
+qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S
+```
+Then in VS Code, select `QEMU: Attach to running GDB server` and press `F5`.
+
+### Useful Debug Actions
+
+| Action | Shortcut |
+|--------|----------|
+| Continue | `F5` |
+| Step Over | `F10` |
+| Step Into | `F11` |
+| Toggle Breakpoint | `F9` |
+| View Variables | Debug sidebar |
+| View Registers | Debug sidebar → Registers |
+
+---
+
 ### Known Issues
 
 - Serial output may not appear in QEMU (Goldfish TTY not fully connected)
