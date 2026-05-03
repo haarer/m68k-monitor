@@ -339,6 +339,13 @@ tests/test_monitor.py
 
 ### Running Tests
 
+**Option 1: Using make (recommended)**
+```bash
+cd /workspace/m68k-monitor
+make test
+```
+
+**Option 2: Manual execution**
 ```bash
 # Create virtual environment and install dependencies
 cd /workspace/m68k-monitor

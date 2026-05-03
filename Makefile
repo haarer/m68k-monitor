@@ -75,7 +75,12 @@ debug-qemu:
 	@echo ""
 	qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S
 
-.PHONY: all clean files size run-qemu debug-qemu help
+test: VARIANT=qemu
+test: all
+	@echo "---> Running test suite..."
+	cd tests && python3 test_monitor.py
+
+.PHONY: all clean files size run-qemu debug-qemu test help
 
 help:
 	@echo "Build targets:"
@@ -83,6 +88,7 @@ help:
 	@echo "  make all VARIANT=qemu         - Build for QEMU virt machine"
 	@echo "  make run-qemu                - Build and run in QEMU"
 	@echo "  make debug-qemu               - Build and start QEMU with GDB server"
+	@echo "  make test                     - Build and run test suite (QEMU)"
 	@echo ""
 	@echo "Debugging:"
 	@echo "  make debug-qemu"
