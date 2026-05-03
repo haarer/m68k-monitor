@@ -15,6 +15,7 @@ static void     init_chip_selects( void );
 void
 init_main( void )
 {
+  #ifndef PLATFORM_QEMU
   init_basics(  );
   init_clock_config(  );
   init_peripherials(  );
@@ -22,6 +23,8 @@ init_main( void )
 
   /* Initialise individual modules */
   init_chip_selects(  );
+
+  #endif
 
   _REENT_INIT_PTR(&reent_main);
   _impure_ptr = &reent_main;
