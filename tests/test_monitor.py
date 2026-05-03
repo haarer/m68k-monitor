@@ -2,6 +2,8 @@
 """
 Test suite for m68k-monitor using QEMU.
 Tests all user commands: help, md, mw, mf, mc
+
+Runs QEMU once and connects via TCP serial.
 """
 
 import subprocess
@@ -9,7 +11,9 @@ import time
 import sys
 import os
 import signal
-import tempfile
+import socket
+import select
+import threading
 
 # Colors
 RED = '\033[0;31m'
@@ -17,15 +21,26 @@ GREEN = '\033[0;32m'
 YELLOW = '\033[1;33m'
 NC = '\033[0m'
 
+QEMU_PORT = 1235
 TIMEOUT = 10
 PASS = 0
 FAIL = 0
 QEMU_PID = None
+SOCKET = None
+READ_BUFFER = ""
 
 
 def cleanup():
-    """Clean up QEMU process."""
-    global QEMU_PID
+    """Clean up QEMU process and socket."""
+    global QEMU_PID, SOCKET
+
+    if SOCKET:
+        try:
+            SOCKET.close()
+        except Exception:
+            pass
+        SOCKET = None
+
     if QEMU_PID:
         try:
             os.kill(QEMU_PID, signal.SIGTERM)
@@ -50,75 +65,125 @@ def log_fail(test_name, details=""):
     FAIL += 1
 
 
-def run_test(commands, expected, test_name):
-    """Run QEMU with commands and check for expected output.
-
-    Uses a temporary file for input since QEMU processes file input correctly.
-    """
+def start_qemu():
+    """Start QEMU with TCP serial, once for all tests."""
     global QEMU_PID
-
-    # Create input file with commands using \r as line terminator
-    # (monitor expects \r to process commands)
-    with tempfile.NamedTemporaryFile(mode='wb', suffix='.txt', delete=False) as f:
-        for cmd in commands:
-            f.write((cmd + '\r').encode())
-        # Add a delay to keep QEMU alive longer
-        f.write(b'sleep 1\r')
-        input_file = f.name
 
     qemu_cmd = [
         'qemu-system-m68k', '-M', 'virt', '-cpu', 'm68020',
         '-kernel', '../m68k-monitor.elf',
-        '-serial', 'stdio', '-monitor', 'none',
-        '-nographic', '-display', 'none'
+        '-serial', f'tcp::{QEMU_PORT},server,nowait',
+        '-monitor', 'none',
+        '-display', 'none', '-nographic'
     ]
 
     try:
-        with open(input_file, 'r') as f_in:
-            proc = subprocess.Popen(
-                qemu_cmd,
-                stdin=f_in,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
-            )
-            QEMU_PID = proc.pid
+        proc = subprocess.Popen(
+            qemu_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
+        )
+        QEMU_PID = proc.pid
+        print(f"QEMU started (PID: {QEMU_PID})")
 
-            # Wait for output with timeout
+        # Wait for QEMU to start and open port
+        for i in range(20):
             try:
-                stdout, stderr = proc.communicate(timeout=TIMEOUT)
-                output = stdout + stderr
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                stdout, stderr = proc.communicate()
-                output = stdout + stderr
-
-            # Check if expected string is in output
-            if expected in output:
-                log_pass(test_name)
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(1)
+                s.connect(('127.0.0.1', QEMU_PORT))
+                s.close()
                 return True
-            else:
-                log_fail(test_name, f"Expected '{expected}' in output")
-                if "--debug" in sys.argv:
-                    print(f"    Output was: {repr(output[:500])}")
-                return False
+            except (ConnectionRefusedError, OSError):
+                time.sleep(0.5)
+
+        print(f"{RED}QEMU did not start listening on port {QEMU_PORT}{NC}")
+        return False
 
     except Exception as e:
-        log_fail(test_name, str(e))
+        print(f"{RED}Failed to start QEMU: {e}{NC}")
         return False
-    finally:
-        # Cleanup
-        if proc.poll() is None:
-            proc.terminate()
+
+
+def connect_tcp():
+    """Connect to QEMU's TCP serial port."""
+    global SOCKET
+
+    try:
+        SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        SOCKET.settimeout(TIMEOUT)
+        SOCKET.connect(('127.0.0.1', QEMU_PORT))
+        print("Connected to QEMU serial via TCP")
+        return True
+    except Exception as e:
+        print(f"{RED}Failed to connect to QEMU TCP serial: {e}{NC}")
+        return False
+
+
+def send_command(cmd):
+    """Send a command via TCP socket."""
+    global SOCKET
+
+    # Send command with \r (monitor expects \r to process line)
+    SOCKET.sendall((cmd + '\r').encode())
+    time.sleep(0.3)
+
+
+def read_output(timeout=TIMEOUT):
+    """Read from socket until we see the prompt 'MON> '."""
+    global SOCKET, READ_BUFFER
+
+    output = ""
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        ready, _, _ = select.select([SOCKET], [], [], 0.5)
+        if ready:
             try:
-                proc.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                proc.kill()
-        QEMU_PID = None
-        try:
-            os.unlink(input_file)
-        except Exception:
-            pass
+                data = SOCKET.recv(4096).decode('utf-8', errors='replace')
+                if data:
+                    output += data
+                    if 'MON> ' in output:
+                        break
+                else:
+                    break
+            except socket.timeout:
+                break
+            except Exception:
+                break
+
+    return output
+
+
+def run_test(commands, expected, test_name):
+    """Run a test by sending commands and checking output."""
+
+    # Clear any pending input
+    try:
+        SOCKET.setblocking(0)
+        while select.select([SOCKET], [], [], 0.1)[0]:
+            SOCKET.recv(4096)
+        SOCKET.setblocking(1)
+    except Exception:
+        pass
+
+    # Send all commands
+    for cmd in commands:
+        send_command(cmd)
+
+    # Read response until prompt
+    output = read_output()
+
+    # Check if expected string is in output
+    if expected in output:
+        log_pass(test_name)
+        return True
+    else:
+        log_fail(test_name, f"Expected '{expected}' in output")
+        if "--debug" in sys.argv:
+            print(f"    Output was: {repr(output[:500])}")
+        return False
 
 
 def test_help():
@@ -138,7 +203,7 @@ def test_mw():
 
 def test_mf():
     """Test the mf (memory fill) command."""
-    return run_test(['mf 100000 10 beef'], 'Filled', 'mf command (memory fill)')
+    return run_test(['mf 100000 10 0xbeef'], 'Filled', 'mf command (memory fill)')
 
 
 def test_mc():
@@ -187,7 +252,7 @@ def main():
     global PASS, FAIL
 
     print("=" * 60)
-    print("m68k-monitor Test Suite (QEMU)")
+    print("m68k-monitor Test Suite (QEMU + TCP)")
     print("=" * 60)
     print()
 
@@ -205,10 +270,36 @@ def main():
         print("Please build the project first with: make all VARIANT=qemu")
         sys.exit(1)
 
-    # Run tests
+    # Start QEMU once
+    print("Starting QEMU...")
+    if not start_qemu():
+        sys.exit(1)
+
+    # Connect to TCP serial
+    print("Connecting to QEMU serial...")
+    if not connect_tcp():
+        cleanup()
+        sys.exit(1)
+
+    # Wait for monitor to boot and show prompt
+    print("Waiting for monitor to boot...")
+    time.sleep(2)
+
+    # Clear initial output (boot messages)
+    try:
+        SOCKET.setblocking(0)
+        while select.select([SOCKET], [], [], 0.2)[0]:
+            SOCKET.recv(4096)
+        SOCKET.setblocking(1)
+    except Exception:
+        pass
+
+    print("Monitor ready.")
+    print()
     print("Running tests...")
     print()
 
+    # Run all tests
     test_help()
     test_md()
     test_mw()

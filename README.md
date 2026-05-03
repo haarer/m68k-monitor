@@ -2,6 +2,13 @@
 
 Bare-metal monitor for MC68331 (CPU32) with UART console.
 
+## About This Project
+
+This is a **proof of concept project** demonstrating the use of [opencode](https://opencode.ai) for embedded system development.
+
+Using [opencode](https://opencode.ai) together open-source toolchain (GCC, binutils, GDB, QEMU) works very well for most embedded development tasks, allowing me to focus on what I actually want to build.
+
+
 ## Build
 
 ```bash
@@ -347,6 +354,13 @@ cd tests
 python3 test_monitor.py
 ```
 
+### Test Architecture
+- QEMU is started once at the beginning of the test suite
+- QEMU's serial is exposed via TCP port 1235
+- Python connects to QEMU via TCP socket
+- All tests run through a single TCP connection
+- QEMU is terminated during cleanup
+
 ### Test Coverage
 
 The test suite validates all user commands:
@@ -368,8 +382,15 @@ The test suite validates all user commands:
 
 ```
 ============================================================
-m68k-monitor Test Suite (QEMU)
+m68k-monitor Test Suite (QEMU + TCP)
 ============================================================
+
+Starting QEMU...
+QEMU started (PID: 1073)
+Connecting to QEMU serial...
+Connected to QEMU serial via TCP
+Waiting for monitor to boot...
+Monitor ready.
 
 Running tests...
 
