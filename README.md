@@ -46,6 +46,7 @@ help           - show this help
 md <addr> <len> - dump memory
 mw <addr> <val> - write memory
 mf <addr> <len> <val> - fill memory
+mc <src> <dst> <len> - copy memory
 ```
 
 ### `md <addr> <len>` - Memory Dump
@@ -312,6 +313,90 @@ Then in VS Code, select `QEMU: Attach to running GDB server` and press `F5`.
 | `m68k-monitor.hex` | Intel HEX | Flash programmer |
 | `m68k-monitor.srec` | Motorola S-Record | Legacy programmers |
 | `m68k-monitor.bin` | Raw binary | Direct flash |
+
+---
+
+## Test Suite
+
+The project includes an automated test suite that verifies all monitor commands using QEMU emulation.
+
+### Location
+```
+tests/test_monitor.py
+```
+
+### Requirements
+- Python 3.12+
+- QEMU with m68k support (`qemu-system-m68k`)
+- Virtual environment with dependencies (auto-created)
+
+### Running Tests
+
+```bash
+# Create virtual environment and install dependencies
+cd /workspace/m68k-monitor
+python3 -m venv venv
+source venv/bin/activate
+pip install pexpect
+
+# Build for QEMU
+make all VARIANT=qemu
+
+# Run tests
+cd tests
+python3 test_monitor.py
+```
+
+### Test Coverage
+
+The test suite validates all user commands:
+
+| Test | Command | Description |
+|------|---------|-------------|
+| 1 | `help` | Verify help displays all commands |
+| 2 | `md` | Memory dump at address 0 |
+| 3 | `mw` | Write value to memory |
+| 4 | `mf` | Fill memory with pattern |
+| 5 | `mc` | Copy memory block |
+| 6 | `mw` + `md` | Write then verify with dump |
+| 7 | `mf` + `md` | Fill then verify with dump |
+| 8 | `mc` + `md` | Copy then verify with dump |
+| 9 | invalid cmd | Error handling for unknown commands |
+| 10 | `mw` missing args | Usage message for missing arguments |
+
+### Output Example
+
+```
+============================================================
+m68k-monitor Test Suite (QEMU)
+============================================================
+
+Running tests...
+
+  help command... PASS
+  md command (memory dump)... PASS
+  mw command (memory write)... PASS
+  mf command (memory fill)... PASS
+  mc command (memory copy)... PASS
+  mw then md verify... PASS
+  mf then md verify... PASS
+  mc then md verify... PASS
+  invalid command handling... PASS
+  missing arguments (mw)... PASS
+
+============================================================
+Test Results:
+  Passed: 10
+  Failed: 0
+============================================================
+All tests passed!
+```
+
+### Notes
+- The test uses QEMU's virt machine with m68020 CPU
+- Commands are sent via file input with `\r` line terminators
+- All numeric values are parsed as hexadecimal (base 16)
+- Each test spawns a fresh QEMU instance for isolation
 
 ---
 
