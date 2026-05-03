@@ -1,3 +1,21 @@
+/**
+ * @file commands.c
+ * @brief Monitor command implementations for m68k-monitor
+ *
+ * This file implements all user-facing commands for the MC68331 monitor.
+ * Commands are registered in the commands[] array (defined at the end)
+ * and invoked through the command-line interpreter in main.c.
+ *
+ * All numeric values (addresses, lengths, values) are parsed as
+ * hexadecimal (base 16) using strtoul(..., 16).
+ *
+ * Memory access notes:
+ *   - md: Accesses memory as bytes (unsigned char)
+ *   - mw: Writes 16-bit words (unsigned short)
+ *   - mf: Fills memory with 16-bit words
+ *   - mc: Copies 16-bit words
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -6,6 +24,10 @@
 
 extern void v_uartPutch(unsigned int ch);
 
+/**
+ * @brief Output a null-terminated string via UART
+ * @param s String to output
+ */
 static void putstr(const char *s)
 {
     while (*s) {
@@ -13,6 +35,11 @@ static void putstr(const char *s)
     }
 }
 
+/**
+ * @brief Output a hexadecimal value via UART
+ * @param val Value to output
+ * @param digits Number of hex digits to output (padded with leading zeros)
+ */
 static void puthex(unsigned long val, int digits)
 {
     const char *hex = "0123456789abcdef";
@@ -21,12 +48,23 @@ static void puthex(unsigned long val, int digits)
     }
 }
 
+/**
+ * @brief Output CRLF (carriage return + line feed) via UART
+ */
 static void putnl(void)
 {
     v_uartPutch('\r');
     v_uartPutch('\n');
 }
 
+/**
+ * @brief Display help message with all available commands
+ * @param argc Argument count (unused)
+ * @param argv Argument vector (unused)
+ * @return Always returns 0
+ *
+ * Shows monitor version and all registered commands with their help text.
+ */
 int cmd_help(int argc, char *argv[])
 {
     int i;
@@ -39,6 +77,21 @@ int cmd_help(int argc, char *argv[])
     return 0;
 }
 
+/**
+ * @brief Memory dump command - dump memory contents as hex bytes
+ * @param argc Argument count (must be >= 3)
+ * @param argv Argument vector: argv[1]=addr, argv[2]=len
+ * @return 0 on success, -1 on error
+ *
+ * Usage: md <addr> <len>
+ *   addr: Starting address in hex
+ *   len:  Number of bytes to dump in hex
+ *
+ * Output format: 16 bytes per line with 8-digit hex address prefix
+ * Example: 00100000: 4e 56 00 00 4e b9 00 10  00 00 4e 5e 4e 75 00 00
+ *
+ * Memory is accessed as bytes (unsigned char).
+ */
 int cmd_md(int argc, char *argv[])
 {
     unsigned long addr;
@@ -71,6 +124,19 @@ int cmd_md(int argc, char *argv[])
     return 0;
 }
 
+/**
+ * @brief Memory write command - write 16-bit value to memory
+ * @param argc Argument count (must be >= 3)
+ * @param argv Argument vector: argv[1]=addr, argv[2]=val
+ * @return 0 on success, -1 on error
+ *
+ * Usage: mw <addr> <val>
+ *   addr: Target address in hex (must be 2-byte aligned)
+ *   val:  16-bit value to write in hex
+ *
+ * Writes a single 16-bit word (2 bytes) to the specified address.
+ * Output: "Wrote <val> to <addr>"
+ */
 int cmd_mw(int argc, char *argv[])
 {
     unsigned long addr;
@@ -93,6 +159,20 @@ int cmd_mw(int argc, char *argv[])
     return 0;
 }
 
+/**
+ * @brief Memory fill command - fill memory with 16-bit pattern
+ * @param argc Argument count (must be >= 4)
+ * @param argv Argument vector: argv[1]=addr, argv[2]=len, argv[3]=val
+ * @return 0 on success, -1 on error
+ *
+ * Usage: mf <addr> <len> <val>
+ *   addr: Starting address in hex (must be 2-byte aligned)
+ *   len:  Number of 16-bit words to fill in hex
+ *   val:  16-bit fill value in hex
+ *
+ * Fills len 16-bit words (len * 2 bytes) with the specified value.
+ * Output: "Filled <len> words at <addr> with <val>"
+ */
 int cmd_mf(int argc, char *argv[])
 {
     unsigned long addr;
@@ -122,6 +202,21 @@ int cmd_mf(int argc, char *argv[])
     return 0;
 }
 
+/**
+ * @brief Memory copy command - copy block of memory
+ * @param argc Argument count (must be >= 4)
+ * @param argv Argument vector: argv[1]=src, argv[2]=dst, argv[3]=len
+ * @return 0 on success, -1 on error
+ *
+ * Usage: mc <src> <dst> <len>
+ *   src:  Source address in hex (must be 2-byte aligned)
+ *   dst:  Destination address in hex (must be 2-byte aligned)
+ *   len:  Number of 16-bit words to copy in hex
+ *
+ * Copies len 16-bit words (len * 2 bytes) from source to destination.
+ * Overlapping regions are handled correctly (like memmove).
+ * Output: "Copied <len> words from <src> to <dst>"
+ */
 int cmd_mc(int argc, char *argv[])
 {
     unsigned long src;

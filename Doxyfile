@@ -1,0 +1,48 @@
+# Doxyfile for m68k-monitor
+
+PROJECT_NAME           = "m68k-monitor"
+PROJECT_BRIEF          = "Bare-metal monitor for MC68331 with UART console"
+PROJECT_NUMBER         = 0.1
+
+# Input settings
+INPUT                  = .
+INPUT_FILTER           = 
+FILE_PATTERNS          = *.c *.h
+RECURSIVE              = NO
+
+# Output settings
+OUTPUT_DIRECTORY       = docs/html
+GENERATE_HTML         = YES
+GENERATE_LATEX         = NO
+GENERATE_RTF          = NO
+GENERATE_XML          = NO
+
+# Documentation settings
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+HIDE_UNDOC_MEMBERS    = NO
+HIDE_UNDOC_CLASSES    = NO
+
+# Source browser
+SOURCE_BROWSER        = YES
+INLINE_SOURCES        = NO
+
+# Warnings
+WARN_NO_PARAMDOC       = YES
+WARN_IF_UNDOCUMENTED   = YES
+
+# Preprocessing
+ENABLE_PREPROCESSING  = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+
+# MC68331 specific
+PREDEFINED             = PLATFORM_QEMU
+EXPAND_AS_DEFINED      = PLATFORM_QEMU
+
+# Dot settings (for call/caller graphs)
+HAVE_DOT               = NO
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
