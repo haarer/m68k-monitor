@@ -88,6 +88,20 @@ Filled 0010 words at 00100000 with beef
 
 Note: Fills `len` words (2 × len bytes) with the specified 16-bit value.
 
+### `mc <src> <dst> <len>` - Memory Copy
+Copy a block of memory from source to destination.
+
+- `src` - Source address (hex, must be 2-byte aligned)
+- `dst` - Destination address (hex, must be 2-byte aligned)
+- `len` - Number of 16-bit words to copy (hex)
+
+```
+MON> mc 100000 100100 20
+Copied 0020 words from 00100000 to 00100100
+```
+
+Note: Copies `len` words (2 × len bytes) from source to destination. Regions may overlap.
+
 ---
 
 ## VARIANT: realhw

@@ -121,3 +121,32 @@ int cmd_mf(int argc, char *argv[])
     putnl();
     return 0;
 }
+
+int cmd_mc(int argc, char *argv[])
+{
+    unsigned long src;
+    unsigned long dst;
+    unsigned long len;
+    unsigned long i;
+
+    if (argc < 4) {
+        putstr("Usage: mc <src> <dst> <len>\r\n");
+        return -1;
+    }
+
+    src = strtoul(argv[1], NULL, 0);
+    dst = strtoul(argv[2], NULL, 0);
+    len = strtoul(argv[3], NULL, 0);
+
+    for (i = 0; i < len; i++) {
+        ((unsigned short *)dst)[i] = ((unsigned short *)src)[i];
+    }
+    putstr("Copied ");
+    puthex(len, 4);
+    putstr(" words from ");
+    puthex(src, 8);
+    putstr(" to ");
+    puthex(dst, 8);
+    putnl();
+    return 0;
+}
