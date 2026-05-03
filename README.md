@@ -33,10 +33,60 @@ Tools: `m68k-elf-gcc`, `m68k-elf-gdb`, `m68k-elf-objdump`, `m68k-elf-nm`, etc.
 
 ## Commands
 
-- `help`              - list commands
-- `md <addr> <len>`  - dump memory (hex)
-- `mw <addr> <val>`  - write memory
-- `mf <addr> <len> <val>` - fill memory
+All addresses and values are in hexadecimal format.
+
+### `help`
+Show this help message with all available commands.
+
+```
+MON> help
+MC68331 Monitor v0.1
+Commands:
+help           - show this help
+md <addr> <len> - dump memory
+mw <addr> <val> - write memory
+mf <addr> <len> <val> - fill memory
+```
+
+### `md <addr> <len>` - Memory Dump
+Dump memory contents starting at `addr` for `len` bytes.
+
+- `addr` - Starting address (hex)
+- `len` - Number of bytes to dump (hex)
+
+Output format: 16 bytes per line with address prefix
+```
+MON> md 100000 20
+00100000: 4e 56 00 00 4e b9 00 10  00 00 4e 5e 4e 75 00 00
+00100010: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
+```
+
+### `mw <addr> <val>` - Memory Write
+Write a 16-bit value to memory address.
+
+- `addr` - Target address (hex, must be 2-byte aligned)
+- `val` - 16-bit value to write (hex)
+
+```
+MON> mw 100100 dead
+Wrote dead to 00100100
+```
+
+Note: Writes 2 bytes (16-bit word) at the specified address.
+
+### `mf <addr> <len> <val>` - Memory Fill
+Fill a block of memory with a 16-bit value.
+
+- `addr` - Starting address (hex, must be 2-byte aligned)
+- `len` - Number of 16-bit words to fill (hex)
+- `val` - 16-bit fill value (hex)
+
+```
+MON> mf 100000 10 beef
+Filled 0010 words at 00100000 with beef
+```
+
+Note: Fills `len` words (2 × len bytes) with the specified 16-bit value.
 
 ---
 
