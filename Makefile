@@ -75,10 +75,17 @@ debug-qemu:
 	@echo ""
 	qemu-system-m68k -M virt -cpu m68020 -kernel m68k-monitor.elf -display none -s -S
 
-test: VARIANT=qemu
-test: all
-	@echo "---> Running test suite..."
+# Test target - always uses QEMU (real hardware testing not yet supported)
+test:
+	@echo "---> Building for QEMU..."
+	$(MAKE) VARIANT=qemu all
+	@echo "---> Running test suite (QEMU only)..."
 	cd tests && python3 test_monitor.py
+
+.PHONY: all clean files size run-qemu debug-qemu test help
+
+# Note: 'make test' currently only supports QEMU emulation.
+# Real hardware testing may be added later.
 
 .PHONY: all clean files size run-qemu debug-qemu test help
 
