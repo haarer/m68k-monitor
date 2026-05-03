@@ -51,8 +51,8 @@ int cmd_md(int argc, char *argv[])
         return -1;
     }
 
-    addr = strtoul(argv[1], NULL, 0);
-    len = strtoul(argv[2], NULL, 0);
+    addr = strtoul(argv[1], NULL, 16);
+    len = strtoul(argv[2], NULL, 16);
 
     p = (unsigned char *)addr;
     for (i = 0; i < len; i++) {
@@ -81,8 +81,8 @@ int cmd_mw(int argc, char *argv[])
         return -1;
     }
 
-    addr = strtoul(argv[1], NULL, 0);
-    val = strtoul(argv[2], NULL, 0);
+    addr = strtoul(argv[1], NULL, 16);
+    val = strtoul(argv[2], NULL, 16);
 
     *(unsigned short *)addr = (unsigned short)val;
     putstr("Wrote ");
@@ -105,9 +105,9 @@ int cmd_mf(int argc, char *argv[])
         return -1;
     }
 
-    addr = strtoul(argv[1], NULL, 0);
-    len = strtoul(argv[2], NULL, 0);
-    val = strtoul(argv[3], NULL, 0);
+    addr = strtoul(argv[1], NULL, 16);
+    len = strtoul(argv[2], NULL, 16);
+    val = strtoul(argv[3], NULL, 16);
 
     for (i = 0; i < len; i++) {
         ((unsigned short *)addr)[i] = (unsigned short)val;
@@ -134,9 +134,9 @@ int cmd_mc(int argc, char *argv[])
         return -1;
     }
 
-    src = strtoul(argv[1], NULL, 0);
-    dst = strtoul(argv[2], NULL, 0);
-    len = strtoul(argv[3], NULL, 0);
+    src = strtoul(argv[1], NULL, 16);
+    dst = strtoul(argv[2], NULL, 16);
+    len = strtoul(argv[3], NULL, 16);
 
     for (i = 0; i < len; i++) {
         ((unsigned short *)dst)[i] = ((unsigned short *)src)[i];

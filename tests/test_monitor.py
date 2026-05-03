@@ -133,7 +133,7 @@ def test_md():
 
 def test_mw():
     """Test the mw (memory write) command."""
-    return run_test(['mw 100000 dead'], 'Wrote dead', 'mw command (memory write)')
+    return run_test(['mw 100000 0xdead'], 'Wrote dead', 'mw command (memory write)')
 
 
 def test_mf():
@@ -149,7 +149,7 @@ def test_mc():
 def test_mw_verify():
     """Test write and verify with memory dump."""
     return run_test(
-        ['mw 100000 1234', 'md 100000 2'],
+        ['mw 100000 0x1234', 'md 100000 2'],
         '1234',
         'mw then md verify'
     )
@@ -158,7 +158,7 @@ def test_mw_verify():
 def test_mf_verify():
     """Test fill and verify with memory dump."""
     return run_test(
-        ['mf 100000 4 aaaa', 'md 100000 8'],
+        ['mf 100000 4 0xaaaa', 'md 100000 8'],
         'aaaa',
         'mf then md verify'
     )
@@ -167,7 +167,7 @@ def test_mf_verify():
 def test_mc_verify():
     """Test copy and verify with memory dump."""
     return run_test(
-        ['mf 100000 4 5555', 'mc 100000 100200 4', 'md 100200 8'],
+        ['mf 100000 4 0x5555', 'mc 100000 100200 4', 'md 100200 8'],
         '5555',
         'mc then md verify'
     )
