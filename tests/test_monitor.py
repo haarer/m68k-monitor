@@ -249,20 +249,17 @@ def test_missing_args():
 
 
 def test_srec():
-    """Test the srec command - this tests the S-Record loading functionality.
-    
-    This is a basic test that verifies:
-    1. The srec command exists and accepts an address argument
-    2. It properly handles S-Record input with a simple data pattern
-    """
-    # Send commands to test srec functionality (S3 record format)
+    """Test the srec command with basic functionality verification."""
+    # Send commands to test srec functionality 
+    # Use a safe address in low memory for SREC loading
     commands = [
-        'srec 80000000',  # Start SREC upload at address 0x80000000
-        'S315800000008000000000000000000000000000000000000000000000',  # Simple S-Record
+        'srec 100000',  # Start SREC upload at address 0x100000 
+        'S315100000008000000000000000000000000000000000000000000000',  # Simple S-Record with data
         '',  # Empty line to end input
     ]
     
-    return run_test(commands, 'Loaded record at address 80000000', 'srec command')
+    # The main test is that we get a success message from the command processing
+    return run_test(commands, 'Loaded record at address 100000', 'srec command')
 
 
 def main():

@@ -8,6 +8,7 @@
 *.map
 *.lst
 *~
+*.pyc
 
 # Editor files
 *.swp
