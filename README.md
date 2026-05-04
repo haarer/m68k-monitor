@@ -110,6 +110,27 @@ Copied 0020 words from 00100000 to 00100100
 
 Note: Copies `len` words (2 × len bytes) from source to destination. Regions may overlap.
 
+### `srec <addr>` - Load S-Record Data
+Load Motorola S-Record formatted data into memory starting at the specified address.
+
+- `addr` - Starting memory address in hex where data will be loaded
+
+This command allows loading of binary programs or data using the standard Motorola S-Record format directly through the serial console. Enter S-record lines one by one, terminated by a blank line or Ctrl+D.
+
+Example:
+```
+MON> srec 100000
+Enter Motorola S-Record data:
+Lines should be in format: S<type><count><address><data><checksum>
+End with blank line or Ctrl+D (ASCII 0x04)
+
+S3091000000000000000000000000000
+S3051000090000000000000000000000
+S3071000120000000000000000000000
+
+S-Record upload completed.
+```
+
 ---
 
 ## VARIANT: realhw

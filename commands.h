@@ -36,8 +36,9 @@ int cmd_md(int argc, char *argv[]);
 int cmd_mw(int argc, char *argv[]);
 int cmd_mf(int argc, char *argv[]);
 int cmd_mc(int argc, char *argv[]);
+int cmd_srec(int argc, char *argv[]);
 
-#define NUM_COMMANDS 5
+#define NUM_COMMANDS 6
 
 /**
  * @brief Command table
@@ -51,6 +52,7 @@ static const cmd_t commands[NUM_COMMANDS] = {
     {"mw",  "mw <addr> <val> - write memory", cmd_mw},
     {"mf",  "mf <addr> <len> <val> - fill memory", cmd_mf},
     {"mc",  "mc <src> <dst> <len> - copy memory", cmd_mc},
+    {"srec", "srec <addr>   - load S-Record data to memory", cmd_srec},
 };
 
 #endif /* COMMANDS_H */

@@ -33,7 +33,7 @@ else
     extra_libs := -L$(LIB_DIR) -lc -lnosys
 endif
 
-OBJ := main.o commands.o $(APPINIT_SRC).o $(UART_SRC).o
+OBJ := main.o commands.o srec.o $(APPINIT_SRC).o $(UART_SRC).o
 
 $(TARGET).elf: $(OBJ) $(AOBJ) $(LDSCRIPT)
 	@echo "---> linking $(VARIANT)..."
