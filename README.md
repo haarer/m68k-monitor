@@ -51,7 +51,7 @@ MC68331 Monitor v0.1
 Commands:
 help           - show this help
 md <addr> <len> - dump memory
-mw <addr> <val> - write memory
+mw <addr> <val> [<val> ...] - write memory
 mf <addr> <len> <val> - fill memory
 mc <src> <dst> <len> - copy memory
 srec <addr>    - load S-Record data
@@ -71,25 +71,37 @@ MON> md 100000 20
 00100010: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00
 ```
 
-### `mw <addr> <val>` - Memory Write
-Write a value to memory address.
-If a 8-bit value is given the memory is written byte wise.
-If a 16-bit value is given the memory is written word wise and the address must be 2 byte aligned.
-If a 32-bit value is given the memory is written longword wise and the address must be 4 byte aligned.
+### `mw <addr> <val> [<val> ...]` - Memory Write
+Write one or more values to memory address.
+The write size is auto-detected from the first value's hex digit count:
+- 1–2 hex digits: 8-bit byte write (no alignment required)
+- 3–4 hex digits: 16-bit word write (address must be 2-byte aligned)
+- 5–8 hex digits: 32-bit longword write (address must be 4-byte aligned)
+
+All values must match the size of the first value.
+The address increments by the write size after each value.
 
 - `addr` - Target address (hex)
-- `val` - either 8-bit, 16-bit or 32-bit value to write (hex)
+- `val` - one or more values to write (hex)
 
 ```
 MON> mw 100100 ff
-Wrote ff to 00100100
+Wrote 0001 byte to 00100100
 
 MON> mw 100100 dead
-Wrote dead to 00100100
+Wrote 0001 word to 00100100
 
 MON> mw 100100 deadbeef
-Wrote deadbeef to 00100100
+Wrote 0001 longword to 00100100
 
+MON> mw 100100 aa bb cc dd
+Wrote 0004 bytes to 00100100
+
+MON> mw 100100 1234 5678 9abc
+Wrote 0003 words to 00100100
+
+MON> mw 100100 01020304 05060708
+Wrote 0002 longwords to 00100100
 ```
 
 ### `mf <addr> <len> <val>` - Memory Fill

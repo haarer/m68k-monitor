@@ -223,13 +223,13 @@ def test_md():
 
 
 def test_mw():
-    """Test the mw (memory write) command - 16-bit word write."""
-    return run_test(['mw 100000 dead'], 'Wrote dead', 'mw command (memory write)')
+    """Test the mw (memory write) command - single 16-bit word write."""
+    return run_test(['mw 100000 dead'], 'Wrote 0001 word', 'mw command (memory write)')
 
 
 def test_mw_byte():
     """Test mw with 8-bit byte value (1-2 hex digits)."""
-    return run_test(['mw 100001 ff'], 'Wrote ff', 'mw byte write (8-bit)')
+    return run_test(['mw 100001 ff'], 'Wrote 0001 byte', 'mw byte write (8-bit)')
 
 
 def test_mw_byte_verify():
@@ -252,7 +252,7 @@ def test_mw_byte_odd_addr():
 
 def test_mw_longword():
     """Test mw with 32-bit longword value (5-8 hex digits)."""
-    return run_test(['mw 100008 deadbeef'], 'Wrote deadbeef', 'mw longword write (32-bit)')
+    return run_test(['mw 100008 deadbeef'], 'Wrote 0001 longword', 'mw longword write (32-bit)')
 
 
 def test_mw_longword_verify():
@@ -276,12 +276,90 @@ def test_mw_longword_align_error():
 
 def test_mw_value_too_large():
     """Test mw rejects value exceeding 8 hex digits."""
-    return run_test(['mw 100000 123456789'], 'too large', 'mw value too large')
+    return run_test(['mw 100000 123456789'], 'invalid value', 'mw value too large')
 
 
 def test_mw_invalid_value():
     """Test mw rejects non-hex characters in value."""
     return run_test(['mw 100000 gg'], 'invalid value', 'mw invalid hex value')
+
+
+def test_mw_multi_bytes():
+    """Test mw with multiple byte values."""
+    return run_test(
+        ['mw 100010 aa bb cc dd ee', 'md 100010 5'],
+        'aa bb cc dd ee',
+        'mw multi byte write then verify'
+    )
+
+
+def test_mw_multi_words():
+    """Test mw with multiple word values."""
+    return run_test(
+        ['mw 100020 1234 5678 9abc', 'md 100020 6'],
+        '12 34 56 78 9a bc',
+        'mw multi word write then verify'
+    )
+
+
+def test_mw_multi_longwords():
+    """Test mw with multiple longword values."""
+    return run_test(
+        ['mw 100030 01020304 05060708', 'md 100030 8'],
+        '01 02 03 04 05 06 07 08',
+        'mw multi longword write then verify'
+    )
+
+
+def test_mw_multi_bytes_output():
+    """Test mw multi-byte output message."""
+    return run_test(['mw 100040 11 22 33'], 'Wrote 0003 bytes', 'mw multi byte output')
+
+
+def test_mw_multi_words_output():
+    """Test mw multi-word output message."""
+    return run_test(['mw 100050 aabb ccdd'], 'Wrote 0002 words', 'mw multi word output')
+
+
+def test_mw_mixed_sizes_error():
+    """Test mw rejects mixing byte/word/longword values."""
+    return run_test(['mw 100060 aa bb 1234'], 'mixed sizes', 'mw mixed sizes rejected')
+
+
+def test_mw_multi_byte_verify_each():
+    """Test mw multi-byte writes each value at correct offset."""
+    return run_test(
+        ['mw 100070 de ad be ef', 'md 100070 4'],
+        'de ad be ef',
+        'mw multi byte each offset correct'
+    )
+
+
+def test_mw_multi_word_verify_each():
+    """Test mw multi-word writes each value at correct offset."""
+    return run_test(
+        ['mw 100080 1111 2222 3333 4444', 'md 100080 8'],
+        '11 11 22 22 33 33 44 44',
+        'mw multi word each offset correct'
+    )
+
+
+def test_mw_multi_longword_verify_each():
+    """Test mw multi-longword writes each value at correct offset."""
+    return run_test(
+        ['mw 100090 aaaa0000 bbbb0000', 'md 100090 8'],
+        'aa aa 00 00 bb bb 00 00',
+        'mw multi longword each offset correct'
+    )
+
+
+def test_mw_multi_alignment_mid():
+    """Test mw detects alignment error when first value is misaligned."""
+    return run_test(
+        ['mw 100091 1234 5678'],
+        'not 2-byte aligned',
+        'mw multi alignment error first value'
+    )
 
 
 def test_mf():
@@ -592,6 +670,16 @@ def main():
     test_mw_longword_align_error()
     test_mw_value_too_large()
     test_mw_invalid_value()
+    test_mw_multi_bytes()
+    test_mw_multi_words()
+    test_mw_multi_longwords()
+    test_mw_multi_bytes_output()
+    test_mw_multi_words_output()
+    test_mw_mixed_sizes_error()
+    test_mw_multi_byte_verify_each()
+    test_mw_multi_word_verify_each()
+    test_mw_multi_longword_verify_each()
+    test_mw_multi_alignment_mid()
     test_mf()
     test_mc()
     test_mw_verify()
