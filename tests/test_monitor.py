@@ -25,14 +25,14 @@ QEMU_PORT = 1235
 TIMEOUT = 10
 PASS = 0
 FAIL = 0
-QEMU_PID = None
+QEMU_PROC = None
 SOCKET = None
 READ_BUFFER = ""
 
 
 def cleanup():
     """Clean up QEMU process and socket."""
-    global QEMU_PID, SOCKET
+    global QEMU_PROC, SOCKET
 
     if SOCKET:
         try:
@@ -41,14 +41,17 @@ def cleanup():
             pass
         SOCKET = None
 
-    if QEMU_PID:
+    if QEMU_PROC:
         try:
-            os.kill(QEMU_PID, signal.SIGTERM)
-            time.sleep(0.5)
-            os.kill(QEMU_PID, signal.SIGKILL)
-        except (ProcessLookupError, ChildProcessError):
+            QEMU_PROC.terminate()
+            try:
+                QEMU_PROC.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                QEMU_PROC.kill()
+                QEMU_PROC.wait(timeout=2)
+        except Exception:
             pass
-        QEMU_PID = None
+        QEMU_PROC = None
 
 
 def log_pass(test_name):
@@ -67,7 +70,7 @@ def log_fail(test_name, details=""):
 
 def start_qemu():
     """Start QEMU with TCP serial, once for all tests."""
-    global QEMU_PID
+    global QEMU_PROC
 
     qemu_cmd = [
         'qemu-system-m68k', '-M', 'virt', '-cpu', 'm68020',
@@ -78,14 +81,13 @@ def start_qemu():
     ]
 
     try:
-        proc = subprocess.Popen(
+        QEMU_PROC = subprocess.Popen(
             qemu_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True
         )
-        QEMU_PID = proc.pid
-        print(f"QEMU started (PID: {QEMU_PID})")
+        print(f"QEMU started (PID: {QEMU_PROC.pid})")
 
         # Wait for QEMU to start and open port
         for i in range(20):
@@ -816,58 +818,59 @@ def main():
     print("Running tests...")
     print()
 
-    # Run all tests
-    test_help()
-    test_md()
-    test_mw()
-    test_mw_byte()
-    test_mw_byte_verify()
-    test_mw_byte_odd_addr()
-    test_mw_longword()
-    test_mw_longword_verify()
-    test_mw_word_align_error()
-    test_mw_longword_align_error()
-    test_mw_value_too_large()
-    test_mw_invalid_value()
-    test_mw_multi_bytes()
-    test_mw_multi_words()
-    test_mw_multi_longwords()
-    test_mw_multi_bytes_output()
-    test_mw_multi_words_output()
-    test_mw_mixed_sizes_error()
-    test_mw_multi_byte_verify_each()
-    test_mw_multi_word_verify_each()
-    test_mw_multi_longword_verify_each()
-    test_mw_multi_alignment_mid()
-    test_history_basic()
-    test_history_two_entries()
-    test_history_empty()
-    test_history_down()
-    test_mf()
-    test_mc()
-    test_mw_verify()
-    test_mf_verify()
-    test_mc_verify()
-    test_invalid_command()
-    test_missing_args()
-    test_srec_basic()
-    test_srec_s1_record()
-    test_srec_s2_record()
-    test_srec_data_verify_s3()
-    test_srec_data_verify_s1()
-    test_srec_multi_record()
-    test_srec_zero_bytes()
-    test_srec_full_range_bytes()
-    test_srec_missing_args()
-    test_srec_invalid_record()
-    test_srec_overwrite_verify()
-    test_srec_upload_completed()
-    test_srec_bad_checksum()
-    test_srec_count_too_large()
-    test_srec_count_too_small()
-
-    # Cleanup
-    cleanup()
+    try:
+        # Run all tests
+        test_help()
+        test_md()
+        test_mw()
+        test_mw_byte()
+        test_mw_byte_verify()
+        test_mw_byte_odd_addr()
+        test_mw_longword()
+        test_mw_longword_verify()
+        test_mw_word_align_error()
+        test_mw_longword_align_error()
+        test_mw_value_too_large()
+        test_mw_invalid_value()
+        test_mw_multi_bytes()
+        test_mw_multi_words()
+        test_mw_multi_longwords()
+        test_mw_multi_bytes_output()
+        test_mw_multi_words_output()
+        test_mw_mixed_sizes_error()
+        test_mw_multi_byte_verify_each()
+        test_mw_multi_word_verify_each()
+        test_mw_multi_longword_verify_each()
+        test_mw_multi_alignment_mid()
+        test_history_basic()
+        test_history_two_entries()
+        test_history_empty()
+        test_history_down()
+        test_mf()
+        test_mc()
+        test_mw_verify()
+        test_mf_verify()
+        test_mc_verify()
+        test_invalid_command()
+        test_missing_args()
+        test_srec_basic()
+        test_srec_s1_record()
+        test_srec_s2_record()
+        test_srec_data_verify_s3()
+        test_srec_data_verify_s1()
+        test_srec_multi_record()
+        test_srec_zero_bytes()
+        test_srec_full_range_bytes()
+        test_srec_missing_args()
+        test_srec_invalid_record()
+        test_srec_overwrite_verify()
+        test_srec_upload_completed()
+        test_srec_bad_checksum()
+        test_srec_count_too_large()
+        test_srec_count_too_small()
+    finally:
+        # Cleanup
+        cleanup()
 
     # Summary
     print()
