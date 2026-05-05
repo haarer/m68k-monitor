@@ -87,7 +87,6 @@ test:
 # Note: 'make test' currently only supports QEMU emulation.
 # Real hardware testing may be added later.
 
-.PHONY: all clean files size run-qemu debug-qemu test help
 
 help:
 	@echo "Build targets:"

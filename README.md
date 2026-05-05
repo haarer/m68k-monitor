@@ -38,7 +38,7 @@ Tools: `m68k-elf-gcc`, `m68k-elf-gdb`, `m68k-elf-objdump`, `m68k-elf-nm`, etc.
 
 ---
 
-## Commands
+## Command Specification
 
 All addresses and values are in hexadecimal format.
 
@@ -59,6 +59,7 @@ srec <addr>    - load S-Record data
 
 ### `md <addr> <len>` - Memory Dump
 Dump memory contents starting at `addr` for `len` bytes.
+Memory is accessed byte wise.
 
 - `addr` - Starting address (hex)
 - `len` - Number of bytes to dump (hex)
@@ -71,17 +72,25 @@ MON> md 100000 20
 ```
 
 ### `mw <addr> <val>` - Memory Write
-Write a 16-bit value to memory address.
+Write a value to memory address.
+If a 8-bit value is given the memory is written byte wise.
+If a 16-bit value is given the memory is written word wise and the address must be 2 byte aligned.
+If a 32-bit value is given the memory is written longword wise and the address must be 4 byte aligned.
 
-- `addr` - Target address (hex, must be 2-byte aligned)
-- `val` - 16-bit value to write (hex)
+- `addr` - Target address (hex)
+- `val` - either 8-bit, 16-bit or 32-bit value to write (hex)
 
 ```
+MON> mw 100100 ff
+Wrote ff to 00100100
+
 MON> mw 100100 dead
 Wrote dead to 00100100
-```
 
-Note: Writes 2 bytes (16-bit word) at the specified address.
+MON> mw 100100 deadbeef
+Wrote deadbeef to 00100100
+
+```
 
 ### `mf <addr> <len> <val>` - Memory Fill
 Fill a block of memory with a 16-bit value.

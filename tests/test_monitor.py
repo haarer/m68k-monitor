@@ -223,8 +223,65 @@ def test_md():
 
 
 def test_mw():
-    """Test the mw (memory write) command."""
-    return run_test(['mw 100000 0xdead'], 'Wrote dead', 'mw command (memory write)')
+    """Test the mw (memory write) command - 16-bit word write."""
+    return run_test(['mw 100000 dead'], 'Wrote dead', 'mw command (memory write)')
+
+
+def test_mw_byte():
+    """Test mw with 8-bit byte value (1-2 hex digits)."""
+    return run_test(['mw 100001 ff'], 'Wrote ff', 'mw byte write (8-bit)')
+
+
+def test_mw_byte_verify():
+    """Test mw byte write and verify with md."""
+    return run_test(
+        ['mw 100003 ab', 'md 100003 1'],
+        'ab',
+        'mw byte write then md verify'
+    )
+
+
+def test_mw_byte_odd_addr():
+    """Test mw byte write works on unaligned (odd) address."""
+    return run_test(
+        ['mw 100005 5a', 'md 100005 1'],
+        '5a',
+        'mw byte write odd address'
+    )
+
+
+def test_mw_longword():
+    """Test mw with 32-bit longword value (5-8 hex digits)."""
+    return run_test(['mw 100008 deadbeef'], 'Wrote deadbeef', 'mw longword write (32-bit)')
+
+
+def test_mw_longword_verify():
+    """Test mw longword write and verify with md."""
+    return run_test(
+        ['mw 10000c 01234567', 'md 10000c 4'],
+        '01 23 45 67',
+        'mw longword write then md verify'
+    )
+
+
+def test_mw_word_align_error():
+    """Test mw word write rejects unaligned address."""
+    return run_test(['mw 100001 abcd'], 'not 2-byte aligned', 'mw word alignment error')
+
+
+def test_mw_longword_align_error():
+    """Test mw longword write rejects unaligned address."""
+    return run_test(['mw 100001 deadbeef'], 'not 4-byte aligned', 'mw longword alignment error')
+
+
+def test_mw_value_too_large():
+    """Test mw rejects value exceeding 8 hex digits."""
+    return run_test(['mw 100000 123456789'], 'too large', 'mw value too large')
+
+
+def test_mw_invalid_value():
+    """Test mw rejects non-hex characters in value."""
+    return run_test(['mw 100000 gg'], 'invalid value', 'mw invalid hex value')
 
 
 def test_mf():
@@ -240,8 +297,8 @@ def test_mc():
 def test_mw_verify():
     """Test write and verify with memory dump."""
     return run_test(
-        ['mw 100000 0x1234', 'md 100000 2'],
-        '1234',
+        ['mw 100000 1234', 'md 100000 2'],
+        '12 34',
         'mw then md verify'
     )
 
@@ -526,6 +583,15 @@ def main():
     test_help()
     test_md()
     test_mw()
+    test_mw_byte()
+    test_mw_byte_verify()
+    test_mw_byte_odd_addr()
+    test_mw_longword()
+    test_mw_longword_verify()
+    test_mw_word_align_error()
+    test_mw_longword_align_error()
+    test_mw_value_too_large()
+    test_mw_invalid_value()
     test_mf()
     test_mc()
     test_mw_verify()

@@ -125,22 +125,28 @@ int cmd_md(int argc, char *argv[])
 }
 
 /**
- * @brief Memory write command - write 16-bit value to memory
+ * @brief Memory write command - write value to memory
  * @param argc Argument count (must be >= 3)
  * @param argv Argument vector: argv[1]=addr, argv[2]=val
  * @return 0 on success, -1 on error
  *
  * Usage: mw <addr> <val>
- *   addr: Target address in hex (must be 2-byte aligned)
- *   val:  16-bit value to write in hex
+ *   addr: Target address in hex
+ *   val:  value to write in hex (size auto-detected from hex digit count)
  *
- * Writes a single 16-bit word (2 bytes) to the specified address.
+ * Size detection:
+ *   1-2 hex digits  -> 8-bit byte write (no alignment required)
+ *   3-4 hex digits  -> 16-bit word write (2-byte aligned)
+ *   5-8 hex digits  -> 32-bit longword write (4-byte aligned)
+ *
  * Output: "Wrote <val> to <addr>"
  */
 int cmd_mw(int argc, char *argv[])
 {
     unsigned long addr;
     unsigned long val;
+    int hex_len;
+    char *endptr;
 
     if (argc < 3) {
         putstr("Usage: mw <addr> <value>\r\n");
@@ -148,14 +154,61 @@ int cmd_mw(int argc, char *argv[])
     }
 
     addr = strtoul(argv[1], NULL, 16);
-    val = strtoul(argv[2], NULL, 16);
 
-    *(unsigned short *)addr = (unsigned short)val;
-    putstr("Wrote ");
-    puthex(val, 4);
-    putstr(" to ");
-    puthex(addr, 8);
-    putnl();
+    /* Determine hex digit count to auto-detect write size */
+    hex_len = strlen(argv[2]);
+
+    if (hex_len <= 2) {
+        /* 8-bit byte write */
+        val = strtoul(argv[2], &endptr, 16);
+        if (*endptr != '\0') {
+            putstr("Error: invalid value\r\n");
+            return -1;
+        }
+        *(unsigned char *)addr = (unsigned char)val;
+        putstr("Wrote ");
+        puthex(val, hex_len);
+        putstr(" to ");
+        puthex(addr, 8);
+        putnl();
+    } else if (hex_len <= 4) {
+        /* 16-bit word write */
+        if (addr & 0x01) {
+            putstr("Error: address not 2-byte aligned\r\n");
+            return -1;
+        }
+        val = strtoul(argv[2], &endptr, 16);
+        if (*endptr != '\0') {
+            putstr("Error: invalid value\r\n");
+            return -1;
+        }
+        *(unsigned short *)addr = (unsigned short)val;
+        putstr("Wrote ");
+        puthex(val, hex_len);
+        putstr(" to ");
+        puthex(addr, 8);
+        putnl();
+    } else if (hex_len <= 8) {
+        /* 32-bit longword write */
+        if (addr & 0x03) {
+            putstr("Error: address not 4-byte aligned\r\n");
+            return -1;
+        }
+        val = strtoul(argv[2], &endptr, 16);
+        if (*endptr != '\0') {
+            putstr("Error: invalid value\r\n");
+            return -1;
+        }
+        *(unsigned long *)addr = val;
+        putstr("Wrote ");
+        puthex(val, hex_len);
+        putstr(" to ");
+        puthex(addr, 8);
+        putnl();
+    } else {
+        putstr("Error: value too large (max 8 hex digits)\r\n");
+        return -1;
+    }
     return 0;
 }
 
