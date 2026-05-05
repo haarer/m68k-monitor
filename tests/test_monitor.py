@@ -204,7 +204,7 @@ def generate_srec(record_type, addr, data_bytes):
     data_str = ''.join(format(b, '02X') for b in data_bytes)
     payload = addr_str + data_str
     payload_bytes = [int(payload[i:i+2], 16) for i in range(0, len(payload), 2)]
-    checksum = (~sum(payload_bytes)) & 0xFF
+    checksum = (-sum(payload_bytes)) & 0xFF
     return 'S{}{:02X}{}{}{:02X}'.format(record_type, count, addr_str, data_str, checksum)
 
 
@@ -427,6 +427,46 @@ def test_srec_upload_completed():
     return run_test(commands, 'S-Record upload completed', 'srec upload completed message')
 
 
+def test_srec_bad_checksum():
+    """Test that an SREC line with a wrong checksum is rejected."""
+    good = generate_srec('3', 0x200700, [0x11, 0x22])
+    bad = good[:-2] + 'FF'  # overwrite the checksum with garbage
+    commands = [
+        'srec 200000',
+        bad,
+        '',
+    ]
+    return run_test(commands, 'Error parsing line', 'srec bad checksum rejected')
+
+
+def test_srec_count_too_large():
+    """Test that an SREC line whose count exceeds actual data length is rejected."""
+    good = generate_srec('3', 0x200800, [0x11, 0x22])
+    # count field is bytes 2-3 (hex). Inflate count by 2 (one extra data byte)
+    count_hex = int(good[2:4], 16) + 1
+    inflated = good[:2] + format(count_hex, '02X') + good[4:]
+    commands = [
+        'srec 200000',
+        inflated,
+        '',
+    ]
+    return run_test(commands, 'Error parsing line', 'srec count too large rejected')
+
+
+def test_srec_count_too_small():
+    """Test that an SREC line whose count is less than actual data length is rejected."""
+    good = generate_srec('3', 0x200900, [0x11, 0x22])
+    # Shrink count by 1 (one fewer data byte claimed)
+    count_hex = int(good[2:4], 16) - 1
+    shrunken = good[:2] + format(count_hex, '02X') + good[4:]
+    commands = [
+        'srec 200000',
+        shrunken,
+        '',
+    ]
+    return run_test(commands, 'Error parsing line', 'srec count too small rejected')
+
+
 def main():
     global PASS, FAIL
 
@@ -501,6 +541,9 @@ def main():
     test_srec_invalid_record()
     test_srec_overwrite_verify()
     test_srec_upload_completed()
+    test_srec_bad_checksum()
+    test_srec_count_too_large()
+    test_srec_count_too_small()
 
     # Cleanup
     cleanup()

@@ -140,7 +140,7 @@ S-Record upload completed.
 | S2 | 24-bit (0x000000–0xFFFFFF) | Medium memory range |
 | S3 | 32-bit (full range) | Full address space |
 
-Each record is acknowledged with `Loaded record at address <addr>` or `Error parsing line: <line>` on failure.
+Each record is acknowledged with `Loaded record at address <addr>` or `Error parsing line: <line>` on failure. Records are validated for correct checksum and consistent field lengths before loading.
 
 ---
 
@@ -428,6 +428,9 @@ The test suite validates all user commands, including data integrity verificatio
 | 20 | `srec` invalid | Invalid record rejected gracefully |
 | 21 | `srec` overwrite | Data overwrites existing memory |
 | 22 | `srec` completed | Upload completion message shown |
+| 23 | `srec` bad checksum | Wrong checksum rejected |
+| 24 | `srec` count too large | Count exceeds data length rejected |
+| 25 | `srec` count too small | Count less than data length rejected |
 
 ### Output Example
 
@@ -467,6 +470,9 @@ Running tests...
   srec invalid record rejected... PASS
   srec overwrite then verify... PASS
   srec upload completed message... PASS
+  srec bad checksum rejected... PASS
+  srec count too large rejected... PASS
+  srec count too small rejected... PASS
 
 ============================================================
 Test Results:

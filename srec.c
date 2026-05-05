@@ -116,6 +116,37 @@ static int parse_srec_line(char* line)
     unsigned long data_len = count - (addr_len / 2) - 1;
     char* data_start = addr_start + addr_len;
 
+    // Validate: count must be large enough for address + checksum
+    if (count < (addr_len / 2) + 1) {
+        return -1;
+    }
+
+    // Validate: actual hex content length must match claimed count
+    // Total hex chars after "S<type>" = count * 2
+    // That covers: address (addr_len), data (data_len*2), checksum (2)
+    // So total line length should be 2 + 2 + count*2 = 4 + count*2
+    unsigned long expected_len = 4 + count * 2;
+    unsigned long actual_len = strlen(line);
+    if (actual_len != expected_len) {
+        return -1;
+    }
+
+    // Validate checksum: sum of all bytes (address + data) + checksum == 0
+    {
+        unsigned char sum = 0;
+        char* p = line + 4;  // skip "S<type><count>"
+        unsigned long total_bytes = count - 1;  // all bytes except checksum
+        unsigned long j;
+        for (j = 0; j < total_bytes; j++) {
+            sum += hexstr_to_ulong(p + j * 2, 2);
+        }
+        // Checksum is the last byte
+        unsigned char checksum = hexstr_to_ulong(p + total_bytes * 2, 2);
+        if ((sum + checksum) & 0xFF) {
+            return -1;
+        }
+    }
+
     unsigned long i;
     for (i = 0; i < data_len; i++) {
         unsigned long byte_val = hexstr_to_ulong(data_start + i * 2, 2);
