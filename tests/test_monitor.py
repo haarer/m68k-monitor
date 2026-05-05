@@ -159,11 +159,15 @@ def read_output(timeout=TIMEOUT):
 def run_test(commands, expected, test_name):
     """Run a test by sending commands and checking output."""
 
-    # Clear any pending input
+    # Clear any pending input — drain until buffer is empty
     try:
         SOCKET.setblocking(0)
-        while select.select([SOCKET], [], [], 0.1)[0]:
-            SOCKET.recv(4096)
+        drained = True
+        while drained:
+            drained = False
+            while select.select([SOCKET], [], [], 0.2)[0]:
+                SOCKET.recv(4096)
+                drained = True
         SOCKET.setblocking(1)
     except Exception:
         pass

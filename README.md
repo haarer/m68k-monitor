@@ -489,6 +489,12 @@ All tests passed!
 - Data integrity is verified by loading via SREC then reading back with `md`
 - All numeric values are parsed as hexadecimal (base 16)
 
+### TCP Socket Buffering
+
+The test suite shares a single TCP connection across all tests. The `srec` command produces substantial output (prompts, echoed input, per-record acknowledgments, completion banner), which can leave residual data in the TCP receive buffer. If not fully drained, stale output bleeds into the next test's response, causing false negatives or false positives.
+
+Each test begins by draining the socket buffer until no data is available for 0.2 seconds, ensuring a clean state between tests. This is necessary because TCP buffers can hold multiple 4KB chunks, and a single `recv()` call is insufficient to flush them all.
+
 ---
 
 ## Architecture
