@@ -49,6 +49,7 @@
 void v_uartInit(void);
 int i_uartGetch(void);
 void v_uartPutch(unsigned int ch);
+void v_uartFlushInput(void);
 
 #else /* PLATFORM_REALHW */
 
@@ -69,6 +70,7 @@ void v_uartPutch(unsigned int ch);
 void v_uartInit(void);
 int i_uartGetch(void);
 void v_uartPutch(unsigned int ch);
+void v_uartFlushInput(void);
 
 #endif /* PLATFORM_REALHW */
 

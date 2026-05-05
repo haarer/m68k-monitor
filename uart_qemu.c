@@ -85,3 +85,19 @@ int i_uartGetch(void)
 {
     *(volatile uint32_t *)(UART_BASE + 0x00) = ch;
 }
+
+/**
+ * @brief Flush all pending input from UART
+ *
+ * Goldfish TTY can echo written characters back into the read buffer.
+ * Call this before starting a read loop to discard stale data.
+ */
+void v_uartFlushInput(void)
+{
+    uint8_t dummy;
+    while (*(volatile uint32_t *)(UART_BASE + 0x04) != 0) {
+        *(volatile uint32_t *)(UART_BASE + 0x10) = (uint32_t)&dummy;
+        *(volatile uint32_t *)(UART_BASE + 0x14) = 1;
+        *(volatile uint32_t *)(UART_BASE + 0x08) = 0x03;
+    }
+}

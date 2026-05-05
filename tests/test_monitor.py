@@ -186,6 +186,28 @@ def run_test(commands, expected, test_name):
         return False
 
 
+def generate_srec(record_type, addr, data_bytes):
+    """Generate a valid SREC record string with correct checksum.
+    
+    Args:
+        record_type: '1', '2', or '3' (S1=16-bit, S2=24-bit, S3=32-bit addr)
+        addr: Target load address (integer)
+        data_bytes: List of byte values (0-255) to embed
+    
+    Returns:
+        SREC record string with valid checksum
+    """
+    addr_bits = {'1': 16, '2': 24, '3': 32}[record_type]
+    addr_hex_len = addr_bits // 4
+    count = (addr_bits // 8) + len(data_bytes) + 1
+    addr_str = format(addr, '0{}X'.format(addr_hex_len))
+    data_str = ''.join(format(b, '02X') for b in data_bytes)
+    payload = addr_str + data_str
+    payload_bytes = [int(payload[i:i+2], 16) for i in range(0, len(payload), 2)]
+    checksum = (~sum(payload_bytes)) & 0xFF
+    return 'S{}{:02X}{}{}{:02X}'.format(record_type, count, addr_str, data_str, checksum)
+
+
 def test_help():
     """Test the help command."""
     return run_test(['help'], 'Commands:', 'help command')
@@ -248,18 +270,161 @@ def test_missing_args():
     return run_test(['mw 100000'], 'Usage:', 'missing arguments (mw)')
 
 
-def test_srec():
-    """Test the srec command with basic functionality verification."""
-    # Send commands to test srec functionality 
-    # Use a safe address in low memory for SREC loading
+def test_srec_basic():
+    """Test basic SREC command - single S3 record loads and reports success."""
+    srec_line = generate_srec('3', 0x100000, [0xAB, 0xCD])
     commands = [
-        'srec 100000',  # Start SREC upload at address 0x100000 
-        'S315100000008000000000000000000000000000000000000000000000',  # Simple S-Record with data
-        '',  # Empty line to end input
+        'srec 200000',
+        srec_line,
+        '',
     ]
-    
-    # The main test is that we get a success message from the command processing
-    return run_test(commands, 'Loaded record at address 100000', 'srec command')
+    return run_test(commands, 'Loaded record at address 200000', 'srec basic S3 record')
+
+
+def test_srec_s1_record():
+    """Test S1 record (16-bit address) loads successfully."""
+    srec_line = generate_srec('1', 0x0000, [0x11, 0x22, 0x33])
+    commands = [
+        'srec 200000',
+        srec_line,
+        '',
+    ]
+    return run_test(commands, 'Loaded record', 'srec S1 record (16-bit addr)')
+
+
+def test_srec_s2_record():
+    """Test S2 record (24-bit address) loads successfully."""
+    srec_line = generate_srec('2', 0x000100, [0xDE, 0xAD])
+    commands = [
+        'srec 200000',
+        srec_line,
+        '',
+    ]
+    return run_test(commands, 'Loaded record', 'srec S2 record (24-bit addr)')
+
+
+def test_srec_data_verify_s3():
+    """Test S3 record data is actually written to correct address and verify with md."""
+    addr = 0x200000
+    data = [0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE]
+    srec_line = generate_srec('3', addr, data)
+    hex_dump = ' '.join(format(b, '02x') for b in data)
+    commands = [
+        'srec 200000',
+        srec_line,
+        '',
+        f'md {addr:X} {len(data)}',
+    ]
+    return run_test(commands, hex_dump, 'srec S3 data verify via md')
+
+def test_srec_data_verify_s1():
+    """Test S1 record data is actually written to correct address and verify with md."""
+    addr = 0x0100
+    data = [0xAA, 0xBB, 0xCC]
+    srec_line = generate_srec('1', addr, data)
+    hex_dump = ' '.join(format(b, '02x') for b in data)
+    commands = [
+        'srec 200000',
+        srec_line,
+        '',
+        f'md {addr:X} {len(data)}',
+    ]
+    return run_test(commands, hex_dump, 'srec S1 data verify via md')
+
+
+def test_srec_multi_record():
+    """Test loading multiple SREC records and verify all data lands correctly."""
+    addr_base = 0x200200
+    data1 = [0x01, 0x02, 0x03]
+    data2 = [0x04, 0x05, 0x06]
+    srec1 = generate_srec('3', addr_base, data1)
+    srec2 = generate_srec('3', addr_base + 3, data2)
+    combined = ' '.join(format(b, '02x') for b in data1 + data2)
+    commands = [
+        'srec 200000',
+        srec1,
+        srec2,
+        '',
+        f'md {addr_base:X} {len(data1) + len(data2)}',
+    ]
+    return run_test(commands, combined, 'srec multi-record verify')
+
+
+def test_srec_zero_bytes():
+    """Test that zero-valued bytes are written correctly."""
+    addr = 0x200300
+    data = [0x00, 0x00, 0x00, 0x00, 0x00]
+    srec_line = generate_srec('3', addr, data)
+    hex_dump = ' '.join(format(b, '02x') for b in data)
+    commands = [
+        'srec 200000',
+        srec_line,
+        '',
+        f'md {addr:X} {len(data)}',
+    ]
+    return run_test(commands, hex_dump, 'srec zero bytes written')
+
+
+def test_srec_full_range_bytes():
+    """Test that extreme byte values (0x00, 0x01, 0xFF) are written correctly."""
+    addr = 0x200400
+    data = [0x00, 0x01, 0xFF, 0x80, 0x7F]
+    srec_line = generate_srec('3', addr, data)
+    hex_dump = ' '.join(format(b, '02x') for b in data)
+    commands = [
+        'srec 200000',
+        srec_line,
+        '',
+        f'md {addr:X} {len(data)}',
+    ]
+    return run_test(commands, hex_dump, 'srec full-range byte values')
+
+
+def test_srec_missing_args():
+    """Test srec command with missing address argument."""
+    commands = [
+        'srec',
+    ]
+    return run_test(commands, 'Usage:', 'srec missing args')
+
+
+def test_srec_invalid_record():
+    """Test that an invalid SREC record line is rejected gracefully."""
+    commands = [
+        'srec 200000',
+        'INVALIDLINE',
+        '',
+    ]
+    return run_test(commands, 'Error parsing line', 'srec invalid record rejected')
+
+
+def test_srec_overwrite_verify():
+    """Test that srec data overwrites existing memory, then verify."""
+    addr = 0x200500
+    # First fill with a known pattern via mf
+    # Then srec-write different data, then verify the srec data won
+    data = [0xAA, 0xBB]
+    srec_line = generate_srec('3', addr, data)
+    hex_dump = ' '.join(format(b, '02x') for b in data)
+    commands = [
+        f'mf {addr:X} 2 0x0000',
+        'srec 200000',
+        srec_line,
+        '',
+        f'md {addr:X} {len(data)}',
+    ]
+    return run_test(commands, hex_dump, 'srec overwrite then verify')
+
+
+def test_srec_upload_completed():
+    """Test that the upload completion message is shown."""
+    srec_line = generate_srec('3', 0x200600, [0x42])
+    commands = [
+        'srec 200000',
+        srec_line,
+        '',
+    ]
+    return run_test(commands, 'S-Record upload completed', 'srec upload completed message')
 
 
 def main():
@@ -324,7 +489,18 @@ def main():
     test_mc_verify()
     test_invalid_command()
     test_missing_args()
-    test_srec()  # Add SREC test at the end
+    test_srec_basic()
+    test_srec_s1_record()
+    test_srec_s2_record()
+    test_srec_data_verify_s3()
+    test_srec_data_verify_s1()
+    test_srec_multi_record()
+    test_srec_zero_bytes()
+    test_srec_full_range_bytes()
+    test_srec_missing_args()
+    test_srec_invalid_record()
+    test_srec_overwrite_verify()
+    test_srec_upload_completed()
 
     # Cleanup
     cleanup()

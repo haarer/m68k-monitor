@@ -61,3 +61,10 @@ void v_uartPutch(unsigned int ch)
   while(!(SCSR & (1<<8)));  // wait for transmitter ready
   SCDR = ch;
 }
+
+void v_uartFlushInput(void)
+{
+  while (SCSR & (1<<6)) {
+    (void)SCDR;
+  }
+}

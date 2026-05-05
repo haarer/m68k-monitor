@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <commands.h>
 #include <uart.h>
+#include <platform.h>
 
 extern void v_uartPutch(unsigned int ch);
 
@@ -162,6 +163,9 @@ int cmd_srec(int argc, char *argv[])
     int linepos = 0;
     int ch;
     
+    // Flush any stale input (Goldfish TTY echoes writes back to read buffer)
+    v_uartFlushInput();
+    
     // Process input one character at a time
     while (1) {
         ch = i_uartGetch();
@@ -170,26 +174,28 @@ int cmd_srec(int argc, char *argv[])
             v_uartPutch('\r');
             v_uartPutch('\n');
             
-            if (linepos > 0) {
-                linebuf[linepos] = '\0';
-                
-                // Check if this is a blank line to end input
-                char* p = linebuf;
-                while (*p == ' ' || *p == '\t') p++;
-                if (*p == '\0') {
-                    break;  // Blank line ends the SREC data entry
-                }
-                
-                // Parse and load the S-Record line 
-                if (parse_srec_line(linebuf) < 0) {
-                    putstr("Error parsing line: ");
-                    putstr(linebuf);
-                    putnl();
-                } else {
-                    putstr("Loaded record at address ");
-                    putstr(argv[1]);
-                    putnl();
-                }
+            if (linepos == 0) {
+                break;  // Blank line ends the SREC data entry
+            }
+            
+            linebuf[linepos] = '\0';
+            
+            // Check if this is a blank line to end input
+            char* p = linebuf;
+            while (*p == ' ' || *p == '\t') p++;
+            if (*p == '\0') {
+                break;  // Blank line ends the SREC data entry
+            }
+            
+            // Parse and load the S-Record line 
+            if (parse_srec_line(linebuf) < 0) {
+                putstr("Error parsing line: ");
+                putstr(linebuf);
+                putnl();
+            } else {
+                putstr("Loaded record at address ");
+                putstr(argv[1]);
+                putnl();
             }
             
             // Reset for next line
