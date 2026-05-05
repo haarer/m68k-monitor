@@ -54,6 +54,7 @@ md <addr> <len> - dump memory
 mw <addr> <val> - write memory
 mf <addr> <len> <val> - fill memory
 mc <src> <dst> <len> - copy memory
+srec <addr>    - load S-Record data
 ```
 
 ### `md <addr> <len>` - Memory Dump
@@ -111,11 +112,11 @@ Copied 0020 words from 00100000 to 00100100
 Note: Copies `len` words (2 × len bytes) from source to destination. Regions may overlap.
 
 ### `srec <addr>` - Load S-Record Data
-Load Motorola S-Record formatted data into memory starting at the specified address.
+Load Motorola S-Record formatted data into memory. The `<addr>` argument is informational (displayed in status messages); actual load addresses are determined by the S-Record records themselves.
 
-- `addr` - Starting memory address in hex where data will be loaded
+- `addr` - Informational address in hex (used in status output)
 
-This command allows loading of binary programs or data using the standard Motorola S-Record format directly through the serial console. Enter S-record lines one by one, terminated by a blank line or Ctrl+D.
+Supports S1 (16-bit), S2 (24-bit), and S3 (32-bit) address records. Enter S-record lines one by one, terminated by a blank line or Ctrl+D.
 
 Example:
 ```
@@ -130,6 +131,16 @@ S3071000120000000000000000000000
 
 S-Record upload completed.
 ```
+
+**Record types:**
+
+| Type | Address Width | Use Case |
+|------|--------------|----------|
+| S1 | 16-bit (0x0000–0xFFFF) | Low memory, small targets |
+| S2 | 24-bit (0x000000–0xFFFFFF) | Medium memory range |
+| S3 | 32-bit (full range) | Full address space |
+
+Each record is acknowledged with `Loaded record at address <addr>` or `Error parsing line: <line>` on failure.
 
 ---
 
@@ -391,10 +402,10 @@ python3 test_monitor.py
 
 ### Test Coverage
 
-The test suite validates all user commands:
+The test suite validates all user commands, including data integrity verification:
 
-| Test | Command | Description |
-|------|---------|-------------|
+| # | Command | Description |
+|---|---------|-------------|
 | 1 | `help` | Verify help displays all commands |
 | 2 | `md` | Memory dump at address 0 |
 | 3 | `mw` | Write value to memory |
@@ -405,6 +416,18 @@ The test suite validates all user commands:
 | 8 | `mc` + `md` | Copy then verify with dump |
 | 9 | invalid cmd | Error handling for unknown commands |
 | 10 | `mw` missing args | Usage message for missing arguments |
+| 11 | `srec` S3 | Basic S3 record load |
+| 12 | `srec` S1 | S1 record (16-bit address) load |
+| 13 | `srec` S2 | S2 record (24-bit address) load |
+| 14 | `srec` S3 + `md` | S3 data integrity verification |
+| 15 | `srec` S1 + `md` | S1 data integrity verification |
+| 16 | `srec` multi + `md` | Multi-record sequential load + verify |
+| 17 | `srec` zeros | Zero-valued bytes written correctly |
+| 18 | `srec` extremes | Full-range byte values (0x00–0xFF) |
+| 19 | `srec` no args | Usage message for missing arguments |
+| 20 | `srec` invalid | Invalid record rejected gracefully |
+| 21 | `srec` overwrite | Data overwrites existing memory |
+| 22 | `srec` completed | Upload completion message shown |
 
 ### Output Example
 
@@ -414,7 +437,7 @@ m68k-monitor Test Suite (QEMU + TCP)
 ============================================================
 
 Starting QEMU...
-QEMU started (PID: 1073)
+QEMU started (PID: 3239)
 Connecting to QEMU serial...
 Connected to QEMU serial via TCP
 Waiting for monitor to boot...
@@ -432,10 +455,22 @@ Running tests...
   mc then md verify... PASS
   invalid command handling... PASS
   missing arguments (mw)... PASS
+  srec basic S3 record... PASS
+  srec S1 record (16-bit addr)... PASS
+  srec S2 record (24-bit addr)... PASS
+  srec S3 data verify via md... PASS
+  srec S1 data verify via md... PASS
+  srec multi-record verify... PASS
+  srec zero bytes written... PASS
+  srec full-range byte values... PASS
+  srec missing args... PASS
+  srec invalid record rejected... PASS
+  srec overwrite then verify... PASS
+  srec upload completed message... PASS
 
 ============================================================
 Test Results:
-  Passed: 10
+  Passed: 22
   Failed: 0
 ============================================================
 All tests passed!
@@ -443,9 +478,10 @@ All tests passed!
 
 ### Notes
 - The test uses QEMU's virt machine with m68020 CPU
-- Commands are sent via file input with `\r` line terminators
+- QEMU's serial is exposed via TCP port 1235; tests connect via TCP socket
+- SREC records are generated with correct checksums at runtime
+- Data integrity is verified by loading via SREC then reading back with `md`
 - All numeric values are parsed as hexadecimal (base 16)
-- Each test spawns a fresh QEMU instance for isolation
 
 ---
 
@@ -455,3 +491,11 @@ All tests passed!
 - newlib stdio (polling-based UART, no interrupts in MVP)
 - Command line interpreter with 64-byte line buffer
 - Vector table in RAM (copied at startup for realhw)
+- UART input flush before srec read loop (prevents Goldfish TTY echo feedback)
+- S-Record parser supports S1/S2/S3 record types with checksum validation
+
+---
+
+## UART Input Handling
+
+The Goldfish TTY in QEMU echoes written characters back into the read buffer. The monitor flushes pending input before starting interactive read loops (e.g., `srec`) to prevent stale echoed data from being interpreted as user input. This is handled by `v_uartFlushInput()` in the platform-specific UART driver.
