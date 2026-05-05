@@ -51,12 +51,14 @@ static unsigned char hexchar_to_value(char c)
 /**
  * @brief Convert hex string to unsigned long value
  * @param s String of hex characters 
+ * @param len Number of hex characters to convert
  * @return Converted value
  */
-static unsigned long hexstr_to_ulong(const char* s)
+static unsigned long hexstr_to_ulong(const char* s, int len)
 {
     unsigned long val = 0;
-    while (*s) {
+    int i;
+    for (i = 0; i < len && *s; i++) {
         val <<= 4;
         val |= hexchar_to_value(*s);
         s++;
@@ -80,65 +82,45 @@ static unsigned long hexstr_to_ulong(const char* s)
 static int parse_srec_line(char* line)
 {
     char type = line[1];
-    
-    // Skip over S and record type
+
     if (*line != 'S' || !(type >= '0' && type <= '9')) {
         return -1;
     }
 
-    // Parse count (number of bytes following, including address and checksum)
-    unsigned long count = hexstr_to_ulong(line + 2);
-    
-    char* addr_start;
+    // Parse count (2 hex chars at offset 2)
+    unsigned long count = hexstr_to_ulong(line + 2, 2);
+
     int addr_len;
     unsigned long addr;
-    
+
     switch (type) {
         case '1':
-            // S1 record: 16-bit address
-            addr_len = 4;  // Address field is 2 bytes in hex
-            addr_start = line + 4;
+            addr_len = 4;
             break;
         case '2':
-            // S2 record: 24-bit address  
-            addr_len = 6;  // Address field is 3 bytes in hex
-            addr_start = line + 6;
+            addr_len = 6;
             break;
         case '3':
-            // S3 record: 32-bit address (most common)
-            addr_len = 8;  // Address field is 4 bytes in hex  
-            addr_start = line + 8;
+            addr_len = 8;
             break;
         default:
-            return -1;  // Unsupported record type
+            return -1;
     }
-    
-    // Parse the address from the record header
-    char* addr_end;
-    addr = strtoul(addr_start, &addr_end, 16);
-    
-    unsigned long data_len = count - (addr_len / 2) - 1;  // Minus checksum byte
-    
-    if ((addr_end - addr_start) != addr_len) {
-        return -1;  // Address length mismatch
-    }
-    
-    char* data_start = addr_end + (addr_len / 2);  // Skip address bytes, point to data
-    
-    // Parse and write the data to memory
+
+    // Address starts at offset 4 (after "S<type><count>")
+    char* addr_start = line + 4;
+    addr = hexstr_to_ulong(addr_start, addr_len);
+
+    // Data starts after address field
+    unsigned long data_len = count - (addr_len / 2) - 1;
+    char* data_start = addr_start + addr_len;
+
     unsigned long i;
-    for (i = 0; i < data_len; i += 2) {
-        if (data_start[i] == '\0' || data_start[i+1] == '\0') break;
-        
-        char hex_bytes[3];
-        hex_bytes[0] = data_start[i];
-        hex_bytes[1] = data_start[i+1];
-        hex_bytes[2] = '\0';
-        
-        unsigned long byte_val = hexstr_to_ulong(hex_bytes);
-        ((unsigned char*)addr)[i/2] = (unsigned char)byte_val;
+    for (i = 0; i < data_len; i++) {
+        unsigned long byte_val = hexstr_to_ulong(data_start + i * 2, 2);
+        ((unsigned char*)addr)[i] = (unsigned char)byte_val;
     }
-    
+
     return 0;
 }
 
