@@ -165,6 +165,52 @@ Each record is acknowledged with `Loaded record at address <addr>` or `Error par
 
 ---
 
+## Command History
+
+The monitor maintains a history of the last 10 executed commands.
+
+### Navigation
+
+| Key | Action |
+|-----|--------|
+| Cursor Up (`ESC[A`) | Move backward in history (shows older commands) |
+| Cursor Down (`ESC[B`) | Move forward in history (shows newer commands) |
+
+When at the newest entry, pressing Cursor Down clears the line.
+When at the oldest entry, pressing Cursor Up has no effect.
+
+Empty lines are not stored in history.
+History is not persisted across resets.
+
+### Example
+
+```
+MON> help
+MC68331 Monitor v0.1
+...
+
+MON> md 100000 10
+00100000: 4e 56 00 00 ...
+
+MON> mw 100100 dead
+Wrote 0001 word to 00100100
+
+MON> ← press Cursor Up →
+MON> mw 100100 dead
+← press Cursor Up →
+MON> md 100000 10
+← press Cursor Up →
+MON> help
+← press Cursor Down →
+MON> md 100000 10
+← press Cursor Down →
+MON> mw 100100 dead
+← press Cursor Down →
+MON>
+```
+
+---
+
 ## VARIANT: realhw
 
 Target: Motorola MC68331 (CPU32 core) on custom hardware
@@ -423,35 +469,58 @@ python3 test_monitor.py
 
 ### Test Coverage
 
-The test suite validates all user commands, including data integrity verification:
+The test suite validates all user commands, history navigation, and data integrity:
 
 | # | Command | Description |
 |---|---------|-------------|
 | 1 | `help` | Verify help displays all commands |
 | 2 | `md` | Memory dump at address 0 |
-| 3 | `mw` | Write value to memory |
-| 4 | `mf` | Fill memory with pattern |
-| 5 | `mc` | Copy memory block |
-| 6 | `mw` + `md` | Write then verify with dump |
-| 7 | `mf` + `md` | Fill then verify with dump |
-| 8 | `mc` + `md` | Copy then verify with dump |
-| 9 | invalid cmd | Error handling for unknown commands |
-| 10 | `mw` missing args | Usage message for missing arguments |
-| 11 | `srec` S3 | Basic S3 record load |
-| 12 | `srec` S1 | S1 record (16-bit address) load |
-| 13 | `srec` S2 | S2 record (24-bit address) load |
-| 14 | `srec` S3 + `md` | S3 data integrity verification |
-| 15 | `srec` S1 + `md` | S1 data integrity verification |
-| 16 | `srec` multi + `md` | Multi-record sequential load + verify |
-| 17 | `srec` zeros | Zero-valued bytes written correctly |
-| 18 | `srec` extremes | Full-range byte values (0x00–0xFF) |
-| 19 | `srec` no args | Usage message for missing arguments |
-| 20 | `srec` invalid | Invalid record rejected gracefully |
-| 21 | `srec` overwrite | Data overwrites existing memory |
-| 22 | `srec` completed | Upload completion message shown |
-| 23 | `srec` bad checksum | Wrong checksum rejected |
-| 24 | `srec` count too large | Count exceeds data length rejected |
-| 25 | `srec` count too small | Count less than data length rejected |
+| 3 | `mw` | Write 16-bit word to memory |
+| 4 | `mw` byte | Write 8-bit byte to memory |
+| 5 | `mw` byte + `md` | Byte write then verify with dump |
+| 6 | `mw` byte odd addr | Byte write on unaligned address |
+| 7 | `mw` longword | Write 32-bit longword to memory |
+| 8 | `mw` longword + `md` | Longword write then verify with dump |
+| 9 | `mw` word align error | Reject word write on unaligned address |
+| 10 | `mw` longword align error | Reject longword write on unaligned address |
+| 11 | `mw` value too large | Reject value exceeding 8 hex digits |
+| 12 | `mw` invalid value | Reject non-hex characters |
+| 13 | `mw` multi byte | Write multiple bytes then verify |
+| 14 | `mw` multi word | Write multiple words then verify |
+| 15 | `mw` multi longword | Write multiple longwords then verify |
+| 16 | `mw` multi byte output | Verify plural "bytes" in output |
+| 17 | `mw` multi word output | Verify plural "words" in output |
+| 18 | `mw` mixed sizes | Reject mixing byte/word/longword values |
+| 19 | `mw` multi byte offset | Each byte at correct sequential offset |
+| 20 | `mw` multi word offset | Each word at correct +2 offset |
+| 21 | `mw` multi longword offset | Each longword at correct +4 offset |
+| 22 | `mw` multi alignment | Detect alignment error mid-sequence |
+| 23 | `history` basic | Cursor Up recalls previous command |
+| 24 | `history` two entries | Cursor Up cycles through multiple entries |
+| 25 | `history` empty | Cursor Up with no history is harmless |
+| 26 | `history` down | Cursor Down moves forward in history |
+| 27 | `mf` | Fill memory with pattern |
+| 28 | `mc` | Copy memory block |
+| 29 | `mw` + `md` | Write then verify with dump |
+| 30 | `mf` + `md` | Fill then verify with dump |
+| 31 | `mc` + `md` | Copy then verify with dump |
+| 32 | invalid cmd | Error handling for unknown commands |
+| 33 | `mw` missing args | Usage message for missing arguments |
+| 34 | `srec` S3 | Basic S3 record load |
+| 35 | `srec` S1 | S1 record (16-bit address) load |
+| 36 | `srec` S2 | S2 record (24-bit address) load |
+| 37 | `srec` S3 + `md` | S3 data integrity verification |
+| 38 | `srec` S1 + `md` | S1 data integrity verification |
+| 39 | `srec` multi + `md` | Multi-record sequential load + verify |
+| 40 | `srec` zeros | Zero-valued bytes written correctly |
+| 41 | `srec` extremes | Full-range byte values (0x00–0xFF) |
+| 42 | `srec` no args | Usage message for missing arguments |
+| 43 | `srec` invalid | Invalid record rejected gracefully |
+| 44 | `srec` overwrite | Data overwrites existing memory |
+| 45 | `srec` completed | Upload completion message shown |
+| 46 | `srec` bad checksum | Wrong checksum rejected |
+| 47 | `srec` count too large | Count exceeds data length rejected |
+| 48 | `srec` count too small | Count less than data length rejected |
 
 ### Output Example
 
@@ -472,6 +541,29 @@ Running tests...
   help command... PASS
   md command (memory dump)... PASS
   mw command (memory write)... PASS
+  mw byte write (8-bit)... PASS
+  mw byte write then md verify... PASS
+  mw byte write odd address... PASS
+  mw longword write (32-bit)... PASS
+  mw longword write then md verify... PASS
+  mw word alignment error... PASS
+  mw longword alignment error... PASS
+  mw value too large... PASS
+  mw invalid hex value... PASS
+  mw multi byte write then verify... PASS
+  mw multi word write then verify... PASS
+  mw multi longword write then verify... PASS
+  mw multi byte output... PASS
+  mw multi word output... PASS
+  mw mixed sizes rejected... PASS
+  mw multi byte each offset correct... PASS
+  mw multi word each offset correct... PASS
+  mw multi longword each offset correct... PASS
+  mw multi alignment error first value... PASS
+  history basic recall... PASS
+  history two entries cycle... PASS
+  history empty safe... PASS
+  history down forward... PASS
   mf command (memory fill)... PASS
   mc command (memory copy)... PASS
   mw then md verify... PASS
@@ -497,7 +589,7 @@ Running tests...
 
 ============================================================
 Test Results:
-  Passed: 22
+  Passed: 48
   Failed: 0
 ============================================================
 All tests passed!
@@ -523,6 +615,7 @@ Each test begins by draining the socket buffer until no data is available for 0.
 - Bare metal (no OS)
 - newlib stdio (polling-based UART, no interrupts in MVP)
 - Command line interpreter with 64-byte line buffer
+- Command history buffer (10 entries, navigated with Cursor Up/Down)
 - Vector table in RAM (copied at startup for realhw)
 - UART input flush before srec read loop (prevents Goldfish TTY echo feedback)
 - S-Record parser supports S1/S2/S3 record types with checksum validation

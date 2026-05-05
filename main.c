@@ -17,6 +17,7 @@
  *   - Backspace (\b or 0x7f) deletes last character
  *   - Carriage return (\r) terminates input
  *   - Only printable characters (>= ' ') are accepted
+ *   - Cursor Up/Down (ESC[A / ESC[B) navigate command history
  */
 
 #include <stdio.h>
@@ -27,8 +28,14 @@
 
 extern struct _reent reent_main;
 
-static char linebuf[64];  /**< Input line buffer (64 bytes max) */
-static int linepos;          /**< Current position in linebuf */
+#define HISTORY_SIZE 10
+
+static char linebuf[64];
+static int linepos;
+
+static char history[HISTORY_SIZE][64];
+static int history_count;
+static int history_pos;
 
 /**
  * @brief Output a null-terminated string via UART
@@ -57,6 +64,45 @@ static void putnl(void)
 static void prompt(void)
 {
     putstr("MON> ");
+}
+
+/**
+ * @brief Redraw the current line
+ * Clears the line and re-displays prompt + buffer content
+ */
+static void redraw_line(void)
+{
+    int i;
+    putstr("\r\b");
+    prompt();
+    for (i = 0; i < linepos; i++) {
+        v_uartPutch(linebuf[i]);
+    }
+}
+
+/**
+ * @brief Add a command to the history buffer
+ * @param cmd Command string to add
+ */
+static void history_add(const char *cmd)
+{
+    int len;
+    if (cmd[0] == '\0') return;
+
+    len = strlen(cmd);
+    if (len >= 64) len = 63;
+
+    if (history_count < HISTORY_SIZE) {
+        strncpy(history[history_count], cmd, len);
+        history[history_count][len] = '\0';
+        history_count++;
+    } else {
+        memmove(history, history + 1, (HISTORY_SIZE - 1) * sizeof(history[0]));
+        strncpy(history[HISTORY_SIZE - 1], cmd, len);
+        history[HISTORY_SIZE - 1][len] = '\0';
+    }
+
+    history_pos = history_count;
 }
 
 /**
@@ -133,6 +179,7 @@ int main(int argc, char *argv[])
     int i;
     int cmd_idx;
     char *cmd_argv[16];
+    int esc_seq;
 
     init_main();
 
@@ -142,20 +189,59 @@ int main(int argc, char *argv[])
     putnl();
 
     linepos = 0;
+    history_count = 0;
+    history_pos = 0;
 
     for (;;) {
         prompt();
 
         while (1) {
             ch = i_uartGetch();
+
+            if (ch == 0x1B) {
+                esc_seq = i_uartGetch();
+                if (esc_seq == '[') {
+                    esc_seq = i_uartGetch();
+
+                    if (esc_seq == 'A') {
+                        if (history_pos > 0) {
+                            history_pos--;
+                            strncpy(linebuf, history[history_pos], sizeof(linebuf) - 1);
+                            linebuf[sizeof(linebuf) - 1] = '\0';
+                            linepos = strlen(linebuf);
+                            redraw_line();
+                        }
+                    } else if (esc_seq == 'B') {
+                        if (history_pos < history_count) {
+                            history_pos++;
+                            if (history_pos < history_count) {
+                                strncpy(linebuf, history[history_pos], sizeof(linebuf) - 1);
+                                linebuf[sizeof(linebuf) - 1] = '\0';
+                                linepos = strlen(linebuf);
+                            } else {
+                                linebuf[0] = '\0';
+                                linepos = 0;
+                            }
+                            redraw_line();
+                        }
+                    }
+                }
+                continue;
+            }
+
             v_uartPutch(ch);
+
             if (ch == '\r') {
                 putnl();
                 linebuf[linepos] = '\0';
+                history_add(linebuf);
                 break;
             }
             if (ch == '\b' || ch == 0x7f) {
-                if (linepos > 0) linepos--;
+                if (linepos > 0) {
+                    linepos--;
+                    redraw_line();
+                }
                 continue;
             }
             if (ch >= ' ' && linepos < sizeof(linebuf) - 1) {

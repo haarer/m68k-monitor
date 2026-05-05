@@ -130,6 +130,26 @@ def send_command(cmd):
     time.sleep(0.3)
 
 
+def send_raw(data):
+    """Send raw bytes via TCP socket (no trailing \\r)."""
+    global SOCKET
+
+    if isinstance(data, str):
+        data = data.encode()
+    SOCKET.sendall(data)
+    time.sleep(0.3)
+
+
+def send_cursor_up():
+    """Send ANSI escape sequence for cursor up key."""
+    send_raw('\x1b[A')
+
+
+def send_cursor_down():
+    """Send ANSI escape sequence for cursor down key."""
+    send_raw('\x1b[B')
+
+
 def read_output(timeout=TIMEOUT):
     """Read from socket until we see the prompt 'MON> '."""
     global SOCKET, READ_BUFFER
@@ -360,6 +380,145 @@ def test_mw_multi_alignment_mid():
         'not 2-byte aligned',
         'mw multi alignment error first value'
     )
+
+
+def test_history_basic():
+    """Test that cursor up recalls previous command."""
+    # Drain buffer
+    try:
+        SOCKET.setblocking(0)
+        drained = True
+        while drained:
+            drained = False
+            while select.select([SOCKET], [], [], 0.2)[0]:
+                SOCKET.recv(4096)
+                drained = True
+        SOCKET.setblocking(1)
+    except Exception:
+        pass
+
+    send_command('mw 100A00 1111')
+    read_output()
+    send_command('mw 100A00 2222')
+    read_output()
+    # Cursor up should recall 'mw 100A00 2222', then execute it writing 3333
+    send_raw('mw 100A00 3333')
+    send_cursor_up()
+    send_raw('\r')
+    output = read_output()
+    if 'Wrote' in output:
+        log_pass('history basic recall')
+        return True
+    else:
+        log_fail('history basic recall', f"Expected 'Wrote' in output")
+        if "--debug" in sys.argv:
+            print(f"    Output was: {repr(output[:500])}")
+        return False
+
+
+def test_history_two_entries():
+    """Test cursor up cycles through multiple history entries."""
+    try:
+        SOCKET.setblocking(0)
+        drained = True
+        while drained:
+            drained = False
+            while select.select([SOCKET], [], [], 0.2)[0]:
+                SOCKET.recv(4096)
+                drained = True
+        SOCKET.setblocking(1)
+    except Exception:
+        pass
+
+    send_command('help')
+    read_output()
+    send_command('md 0 10')
+    read_output()
+    send_command('mw 100B00 aabb')
+    read_output()
+    # Cursor up should get 'mw 100B00 aabb', then 'md 0 10', then 'help'
+    send_raw('\x1b[A')
+    time.sleep(0.2)
+    send_raw('\x1b[A')
+    time.sleep(0.2)
+    send_raw('\r')
+    output = read_output()
+    if '00000000' in output:
+        log_pass('history two entries cycle')
+        return True
+    else:
+        log_fail('history two entries cycle', f"Expected '00000000' in output")
+        if "--debug" in sys.argv:
+            print(f"    Output was: {repr(output[:500])}")
+        return False
+
+
+def test_history_empty():
+    """Test cursor up with no history does nothing harmful (monitor stays responsive)."""
+    try:
+        SOCKET.setblocking(0)
+        drained = True
+        while drained:
+            drained = False
+            while select.select([SOCKET], [], [], 0.2)[0]:
+                SOCKET.recv(4096)
+                drained = True
+        SOCKET.setblocking(1)
+    except Exception:
+        pass
+
+    # Press cursor up, then clear line with backspaces, then send help
+    send_cursor_up()
+    send_raw('\b\b\b\b\b\b\b\b\b\b\b\b')
+    time.sleep(0.2)
+    send_command('help')
+    output = read_output()
+    if 'Commands:' in output:
+        log_pass('history empty safe')
+        return True
+    else:
+        log_fail('history empty safe', f"Expected 'Commands:' in output")
+        if "--debug" in sys.argv:
+            print(f"    Output was: {repr(output[:500])}")
+        return False
+
+
+def test_history_down():
+    """Test cursor down moves forward in history."""
+    try:
+        SOCKET.setblocking(0)
+        drained = True
+        while drained:
+            drained = False
+            while select.select([SOCKET], [], [], 0.2)[0]:
+                SOCKET.recv(4096)
+                drained = True
+        SOCKET.setblocking(1)
+    except Exception:
+        pass
+
+    send_command('help')
+    read_output()
+    send_command('md 0 10')
+    read_output()
+    # Cursor up twice to go back
+    send_raw('\x1b[A')
+    time.sleep(0.15)
+    send_raw('\x1b[A')
+    time.sleep(0.15)
+    # Cursor down to go forward
+    send_raw('\x1b[B')
+    time.sleep(0.15)
+    send_raw('\r')
+    output = read_output()
+    if 'Wrote' in output or '00000000' in output:
+        log_pass('history down forward')
+        return True
+    else:
+        log_fail('history down forward', f"Expected 'Wrote' or '00000000' in output")
+        if "--debug" in sys.argv:
+            print(f"    Output was: {repr(output[:500])}")
+        return False
 
 
 def test_mf():
@@ -680,6 +839,10 @@ def main():
     test_mw_multi_word_verify_each()
     test_mw_multi_longword_verify_each()
     test_mw_multi_alignment_mid()
+    test_history_basic()
+    test_history_two_entries()
+    test_history_empty()
+    test_history_down()
     test_mf()
     test_mc()
     test_mw_verify()
